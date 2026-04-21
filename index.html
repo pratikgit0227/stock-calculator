@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stock Breakeven &amp; Capital Gains Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3352;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+  header h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header p { color: var(--muted); margin-top: 6px; font-size: 0.875rem; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--surface); border-radius: var(--radius); padding: 4px; margin-bottom: 24px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: none; background: transparent; color: var(--muted);
+    border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all .2s;
+  }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+  .tab-btn:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+  .badge-buy { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-sell { background: rgba(239,68,68,.15); color: var(--red); }
+  .badge-info { background: rgba(79,142,247,.15); color: var(--accent); }
+
+  /* Transaction table */
+  .tx-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .tx-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 110px 36px;
+    gap: 8px;
+    align-items: center;
+  }
+  .tx-row.header-row { font-size: 0.75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .tx-row.header-row > * { padding-left: 2px; }
+
+  input[type="date"], input[type="number"], input[type="text"] {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); padding: 8px 10px; font-size: 0.875rem; outline: none; transition: border-color .2s;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .btn-remove {
+    width: 32px; height: 32px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); border-radius: 6px; cursor: pointer; font-size: 1rem; display: flex;
+    align-items: center; justify-content: center; transition: all .15s;
+  }
+  .btn-remove:hover { background: rgba(239,68,68,.1); border-color: var(--red); color: var(--red); }
+
+  .btn-add {
+    display: flex; align-items: center; gap: 6px; background: transparent; border: 1px dashed var(--border);
+    color: var(--muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    margin-top: 8px; transition: all .15s; width: 100%; justify-content: center;
+  }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-calc {
+    width: 100%; padding: 12px; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: var(--radius); font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; margin-top: 4px; transition: opacity .15s;
+  }
+  .btn-calc:hover { opacity: 0.9; }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+
+  .result-stat {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .result-stat .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .result-stat .value { font-size: 1.25rem; font-weight: 700; }
+  .result-stat .sub { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+  .value.green { color: var(--green); }
+  .value.red { color: var(--red); }
+  .value.amber { color: var(--amber); }
+  .value.accent { color: var(--accent); }
+
+  .insight-box {
+    background: rgba(79,142,247,.07); border: 1px solid rgba(79,142,247,.2);
+    border-radius: var(--radius); padding: 14px 16px; margin-top: 12px;
+  }
+  .insight-box .insight-title { font-size: 0.78rem; font-weight: 600; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .insight-box ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .insight-box li { font-size: 0.83rem; color: var(--text); display: flex; gap: 8px; }
+  .insight-box li::before { content: '›'; color: var(--accent); flex-shrink: 0; }
+
+  /* LTCG tab */
+  .lot-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 110px 36px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .lot-result {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; margin-bottom: 8px;
+  }
+  .lot-result-header {
+    display: grid; grid-template-columns: 1fr 90px 90px 90px 90px;
+    gap: 8px; padding: 8px 14px;
+    font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lot-result-row {
+    display: grid; grid-template-columns: 1fr 90px 90px 90px 90px;
+    gap: 8px; padding: 10px 14px; align-items: center; font-size: 0.83rem;
+  }
+  .lot-result-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+  .lot-result-row:hover { background: rgba(255,255,255,.02); }
+
+  .tag {
+    display: inline-block; font-size: 0.68rem; padding: 2px 7px; border-radius: 999px; font-weight: 600;
+  }
+  .tag-stcg { background: rgba(239,68,68,.15); color: var(--red); }
+  .tag-ltcg { background: rgba(34,197,94,.15); color: var(--green); }
+  .tag-wait { background: rgba(245,158,11,.12); color: var(--amber); }
+
+  .summary-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-top: 12px;
+  }
+  .summary-box .summary-title { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .summary-item .s-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 3px; }
+  .summary-item .s-val { font-size: 1rem; font-weight: 700; }
+
+  .disclaimer {
+    font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: 20px;
+    padding: 12px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+    line-height: 1.6;
+  }
+
+  .current-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+  @media (max-width: 600px) {
+    .tx-row { grid-template-columns: 1fr 90px 100px 32px; }
+    .lot-row { grid-template-columns: 110px 1fr 100px 32px; }
+    .lot-result-header, .lot-result-row { grid-template-columns: 1fr 70px 70px 70px 70px; font-size: 0.7rem; gap: 4px; padding: 8px 10px; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    header h1 { font-size: 1.35rem; }
+    .current-price-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Stock <span>Breakeven &amp; Capital Gains</span> Calculator</h1>
+    <p>Calculate your true breakeven after loss booking &bull; STCG vs LTCG holding analysis</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('breakeven')">📉 Breakeven After Loss</button>
+    <button class="tab-btn" onclick="switchTab('ltcg')">📅 STCG → LTCG Tracker</button>
+  </div>
+
+  <!-- ======================== TAB 1: BREAKEVEN ======================== -->
+  <div id="tab-breakeven" class="tab-panel active">
+
+    <div class="card">
+      <div class="card-title">Buy Transactions <span class="badge badge-buy">BUY</span></div>
+      <div class="tx-grid">
+        <div class="tx-row header-row">
+          <div>Date (optional)</div><div>Qty</div><div>Price (₹)</div><div></div>
+        </div>
+        <div id="buy-rows">
+          <!-- rows injected by JS -->
+        </div>
+      </div>
+      <button class="btn-add" onclick="addBuyRow()">+ Add Buy Transaction</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sell / Loss Booking Transactions <span class="badge badge-sell">SELL</span></div>
+      <div class="tx-grid">
+        <div class="tx-row header-row">
+          <div>Date (optional)</div><div>Qty</div><div>Price (₹)</div><div></div>
+        </div>
+        <div id="sell-rows">
+          <!-- rows injected by JS -->
+        </div>
+      </div>
+      <button class="btn-add" onclick="addSellRow()">+ Add Sell Transaction</button>
+    </div>
+
+    <button class="btn-calc" onclick="calcBreakeven()">Calculate Breakeven</button>
+
+    <div class="results card" id="be-results" style="margin-top:16px;">
+      <div class="card-title">Results</div>
+      <div class="result-grid" id="be-stats"></div>
+      <div class="insight-box" id="be-insights" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- ======================== TAB 2: LTCG TRACKER ======================== -->
+  <div id="tab-ltcg" class="tab-panel">
+
+    <div class="card">
+      <div class="current-price-row">
+        <div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Current Market Price (₹)</div>
+          <input type="number" id="cmp" placeholder="e.g. 520" step="0.01" />
+        </div>
+        <div>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Stock Symbol (optional)</div>
+          <input type="text" id="symbol" placeholder="e.g. RELIANCE" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Buy Lots <span class="badge badge-info">enter each purchase separately</span></div>
+      <div class="tx-grid">
+        <div class="lot-row header-row" style="display:grid;grid-template-columns:130px 1fr 110px 36px;gap:8px;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">
+          <div>Buy Date</div><div>Qty</div><div>Buy Price (₹)</div><div></div>
+        </div>
+        <div id="lot-rows"></div>
+      </div>
+      <button class="btn-add" onclick="addLotRow()">+ Add Buy Lot</button>
+    </div>
+
+    <button class="btn-calc" onclick="calcLTCG()">Analyze Holdings</button>
+
+    <div class="results" id="ltcg-results" style="margin-top:16px;">
+      <div class="card">
+        <div class="card-title">Lot-wise Holding Analysis</div>
+        <div class="lot-result" id="ltcg-table"></div>
+      </div>
+      <div class="card" id="ltcg-summary"></div>
+    </div>
+  </div>
+
+  <p class="disclaimer">
+    ⚠️ For educational purposes only. Tax rates used: STCG on listed equity = 20%, LTCG = 12.5% above ₹1.25L exemption (India, post-Budget 2024).
+    Consult a SEBI-registered advisor or CA before making financial decisions.
+  </p>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────
+const fmt = (n, dec = 2) => {
+  if (isNaN(n) || n === null) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+};
+const fmtN = (n, dec = 2) => Number(n).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const today = () => new Date().toISOString().split('T')[0];
+const daysBetween = (d1, d2) => Math.floor((new Date(d2) - new Date(d1)) / 86400000);
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// TAB 1: BREAKEVEN
+// ─────────────────────────────────────────────
+let buyCount = 0, sellCount = 0;
+
+function addBuyRow(qty = '', price = '', date = '') {
+  const id = ++buyCount;
+  const div = document.createElement('div');
+  div.className = 'tx-row';
+  div.id = 'buy-row-' + id;
+  div.innerHTML = `
+    <input type="date" id="buy-date-${id}" value="${date}" max="${today()}" />
+    <input type="number" id="buy-qty-${id}" placeholder="100" min="0" step="any" value="${qty}" />
+    <input type="number" id="buy-price-${id}" placeholder="450.00" min="0" step="0.01" value="${price}" />
+    <button class="btn-remove" onclick="removeRow('buy-row-${id}')" title="Remove">✕</button>
+  `;
+  document.getElementById('buy-rows').appendChild(div);
+}
+
+function addSellRow(qty = '', price = '', date = '') {
+  const id = ++sellCount;
+  const div = document.createElement('div');
+  div.className = 'tx-row';
+  div.id = 'sell-row-' + id;
+  div.innerHTML = `
+    <input type="date" id="sell-date-${id}" value="${date}" max="${today()}" />
+    <input type="number" id="sell-qty-${id}" placeholder="50" min="0" step="any" value="${qty}" />
+    <input type="number" id="sell-price-${id}" placeholder="380.00" min="0" step="0.01" value="${price}" />
+    <button class="btn-remove" onclick="removeRow('sell-row-${id}')" title="Remove">✕</button>
+  `;
+  document.getElementById('sell-rows').appendChild(div);
+}
+
+function removeRow(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function getBuyRows() {
+  return Array.from(document.querySelectorAll('#buy-rows .tx-row')).map(row => {
+    const id = row.id.replace('buy-row-', '');
+    return {
+      qty: parseFloat(document.getElementById('buy-qty-' + id)?.value) || 0,
+      price: parseFloat(document.getElementById('buy-price-' + id)?.value) || 0,
+    };
+  }).filter(r => r.qty > 0 && r.price > 0);
+}
+
+function getSellRows() {
+  return Array.from(document.querySelectorAll('#sell-rows .tx-row')).map(row => {
+    const id = row.id.replace('sell-row-', '');
+    return {
+      qty: parseFloat(document.getElementById('sell-qty-' + id)?.value) || 0,
+      price: parseFloat(document.getElementById('sell-price-' + id)?.value) || 0,
+    };
+  }).filter(r => r.qty > 0 && r.price > 0);
+}
+
+function calcBreakeven() {
+  const buys = getBuyRows();
+  const sells = getSellRows();
+
+  if (buys.length === 0) { alert('Please add at least one buy transaction.'); return; }
+
+  const totalBought = buys.reduce((s, r) => s + r.qty, 0);
+  const totalInvested = buys.reduce((s, r) => s + r.qty * r.price, 0);
+  const avgBuyPrice = totalInvested / totalBought;
+
+  const totalSold = sells.reduce((s, r) => s + r.qty, 0);
+  const totalSaleProceeds = sells.reduce((s, r) => s + r.qty * r.price, 0);
+
+  if (totalSold > totalBought) { alert('Total sold quantity cannot exceed total bought quantity.'); return; }
+
+  const remainingShares = totalBought - totalSold;
+
+  // Cost of shares at avg that were sold
+  const costOfSoldShares = avgBuyPrice * totalSold;
+  const lossBooked = costOfSoldShares - totalSaleProceeds;  // positive = loss, negative = profit
+
+  // New breakeven = what we still need to recover / remaining shares
+  // = (totalInvested - totalSaleProceeds) / remainingShares
+  const newBreakeven = remainingShares > 0 ? (totalInvested - totalSaleProceeds) / remainingShares : 0;
+  const breakEvenShift = newBreakeven - avgBuyPrice;
+
+  const el = document.getElementById('be-results');
+  const stats = document.getElementById('be-stats');
+  const insights = document.getElementById('be-insights');
+
+  el.classList.add('show');
+  el.style.display = 'block';
+
+  const lossClass = lossBooked > 0 ? 'red' : (lossBooked < 0 ? 'green' : '');
+  const lossLabel = lossBooked > 0 ? 'Loss Booked' : 'Profit Booked';
+  const shiftClass = breakEvenShift > 0 ? 'red' : (breakEvenShift < 0 ? 'green' : '');
+
+  stats.innerHTML = `
+    <div class="result-stat">
+      <div class="label">Total Invested</div>
+      <div class="value">${fmt(totalInvested)}</div>
+      <div class="sub">${fmtN(totalBought, 0)} shares</div>
+    </div>
+    <div class="result-stat">
+      <div class="label">Original Avg Price</div>
+      <div class="value accent">${fmt(avgBuyPrice)}</div>
+      <div class="sub">per share</div>
+    </div>
+    <div class="result-stat">
+      <div class="label">${lossLabel}</div>
+      <div class="value ${lossClass}">${fmt(Math.abs(lossBooked))}</div>
+      <div class="sub">on ${fmtN(totalSold, 0)} shares sold</div>
+    </div>
+    <div class="result-stat">
+      <div class="label">Remaining Shares</div>
+      <div class="value">${fmtN(remainingShares, 0)}</div>
+      <div class="sub">still holding</div>
+    </div>
+    ${remainingShares > 0 ? `
+    <div class="result-stat" style="border-color: ${lossBooked > 0 ? 'rgba(239,68,68,.35)' : 'var(--border)'};">
+      <div class="label">New Breakeven Price</div>
+      <div class="value ${lossBooked > 0 ? 'red' : 'green'}">${fmt(newBreakeven)}</div>
+      <div class="sub">per share to fully recover</div>
+    </div>
+    <div class="result-stat">
+      <div class="label">Breakeven Shift</div>
+      <div class="value ${shiftClass}">${breakEvenShift >= 0 ? '+' : ''}${fmt(breakEvenShift)}</div>
+      <div class="sub">vs original avg</div>
+    </div>` : ''}
+  `;
+
+  const insightLines = [];
+  if (remainingShares > 0) {
+    insightLines.push(`Your new breakeven is <strong>${fmt(newBreakeven)}</strong> — you need the stock to reach this price to fully recover all invested capital including the booked loss.`);
+    if (lossBooked > 0) {
+      const pctGainNeeded = ((newBreakeven / avgBuyPrice) - 1) * 100;
+      insightLines.push(`That's <strong>${pctGainNeeded.toFixed(1)}% above</strong> your original average buy price of ${fmt(avgBuyPrice)}.`);
+      insightLines.push(`The booked loss of ${fmt(lossBooked)} has been "absorbed" into your remaining ${fmtN(remainingShares, 0)} shares, raising the per-share recovery target.`);
+    } else if (lossBooked < 0) {
+      insightLines.push(`You booked a profit on the sale — your new breakeven of ${fmt(newBreakeven)} is actually <strong>lower</strong> than your original avg. The profit has effectively reduced your cost basis.`);
+    } else {
+      insightLines.push(`You sold exactly at average — breakeven is unchanged.`);
+    }
+  } else {
+    insightLines.push(`You have sold all shares. ${lossBooked > 0 ? `Total realized loss: ${fmt(lossBooked)}.` : `Total realized profit: ${fmt(Math.abs(lossBooked))}.`}`);
+  }
+
+  insights.innerHTML = `<div class="insight-title">💡 What This Means</div><ul>${insightLines.map(l => `<li>${l}</li>`).join('')}</ul>`;
+}
+
+// ─────────────────────────────────────────────
+// TAB 2: LTCG TRACKER
+// ─────────────────────────────────────────────
+let lotCount = 0;
+
+function addLotRow(date = '', qty = '', price = '') {
+  const id = ++lotCount;
+  const div = document.createElement('div');
+  div.className = 'lot-row';
+  div.id = 'lot-row-' + id;
+  div.style.display = 'grid';
+  div.style.gridTemplateColumns = '130px 1fr 110px 36px';
+  div.style.gap = '8px';
+  div.style.alignItems = 'center';
+  div.innerHTML = `
+    <input type="date" id="lot-date-${id}" value="${date}" max="${today()}" required />
+    <input type="number" id="lot-qty-${id}" placeholder="100" min="0" step="any" value="${qty}" />
+    <input type="number" id="lot-price-${id}" placeholder="450.00" min="0" step="0.01" value="${price}" />
+    <button class="btn-remove" onclick="removeRow('lot-row-${id}')" title="Remove">✕</button>
+  `;
+  document.getElementById('lot-rows').appendChild(div);
+}
+
+function getLotRows() {
+  return Array.from(document.querySelectorAll('#lot-rows .lot-row')).map(row => {
+    const id = row.id.replace('lot-row-', '');
+    return {
+      date: document.getElementById('lot-date-' + id)?.value,
+      qty: parseFloat(document.getElementById('lot-qty-' + id)?.value) || 0,
+      price: parseFloat(document.getElementById('lot-price-' + id)?.value) || 0,
+    };
+  }).filter(r => r.qty > 0 && r.price > 0 && r.date);
+}
+
+function calcLTCG() {
+  const lots = getLotRows();
+  const cmp = parseFloat(document.getElementById('cmp').value);
+  const symbol = document.getElementById('symbol').value.trim() || 'Stock';
+
+  if (lots.length === 0) { alert('Please add at least one buy lot with a date.'); return; }
+  if (!cmp || cmp <= 0) { alert('Please enter the current market price.'); return; }
+
+  const todayStr = today();
+  const LTCG_DAYS = 365;
+  const LTCG_RATE = 0.125;
+  const STCG_RATE = 0.20;
+  const LTCG_EXEMPTION = 125000; // ₹1.25L
+
+  let totalInvested = 0, totalQty = 0;
+  let totalSTCGain = 0, totalLTCGain = 0;
+  let totalSTCLoss = 0, totalLTCLoss = 0;
+
+  const tableEl = document.getElementById('ltcg-table');
+  const summaryEl = document.getElementById('ltcg-summary');
+  const resultsEl = document.getElementById('ltcg-results');
+
+  const rows = lots.map(lot => {
+    const heldDays = daysBetween(lot.date, todayStr);
+    const isLTCG = heldDays >= LTCG_DAYS;
+    const daysToLTCG = isLTCG ? 0 : LTCG_DAYS - heldDays;
+    const currentValue = lot.qty * cmp;
+    const costBasis = lot.qty * lot.price;
+    const gain = currentValue - costBasis;
+    const gainPct = ((cmp / lot.price) - 1) * 100;
+
+    if (isLTCG) {
+      if (gain >= 0) totalLTCGain += gain; else totalLTCLoss += Math.abs(gain);
+    } else {
+      if (gain >= 0) totalSTCGain += gain; else totalSTCLoss += Math.abs(gain);
+    }
+
+    totalInvested += costBasis;
+    totalQty += lot.qty;
+
+    return { lot, heldDays, isLTCG, daysToLTCG, currentValue, costBasis, gain, gainPct };
+  });
+
+  // Sort by buy date asc
+  rows.sort((a, b) => a.lot.date.localeCompare(b.lot.date));
+
+  // Tax estimation
+  const ltcgTaxable = Math.max(0, totalLTCGain - LTCG_EXEMPTION);
+  const ltcgTax = ltcgTaxable * LTCG_RATE;
+  const stcgNet = totalSTCGain - totalSTCLoss;
+  const stcgTax = Math.max(0, stcgNet) * STCG_RATE;
+
+  tableEl.innerHTML = `
+    <div class="lot-result-header">
+      <div>Lot (Date · Qty)</div>
+      <div>Held</div>
+      <div>Status</div>
+      <div>Gain / Loss</div>
+      <div>Days to LTCG</div>
+    </div>
+    ${rows.map(r => `
+      <div class="lot-result-row">
+        <div>
+          <div style="font-weight:600;">${r.lot.date}</div>
+          <div style="color:var(--muted);font-size:.72rem;">${fmtN(r.lot.qty, 0)} shares @ ${fmt(r.lot.price)}</div>
+        </div>
+        <div>${r.heldDays}d</div>
+        <div>
+          <span class="tag ${r.isLTCG ? 'tag-ltcg' : 'tag-stcg'}">${r.isLTCG ? 'LTCG' : 'STCG'}</span>
+        </div>
+        <div class="${r.gain >= 0 ? 'green' : 'red'}" style="font-weight:600;">
+          ${r.gain >= 0 ? '+' : ''}${fmt(r.gain)}
+          <div style="font-size:.7rem;font-weight:400;color:var(--muted);">${r.gainPct >= 0 ? '+' : ''}${r.gainPct.toFixed(1)}%</div>
+        </div>
+        <div>
+          ${r.isLTCG
+            ? `<span class="tag tag-ltcg">✓ Qualified</span>`
+            : `<span class="tag tag-wait">${r.daysToLTCG}d left</span>`}
+        </div>
+      </div>
+    `).join('')}
+  `;
+
+  const totalCurrentValue = totalQty * cmp;
+  const totalGainLoss = totalCurrentValue - totalInvested;
+
+  summaryEl.innerHTML = `
+    <div class="card-title">Portfolio Summary</div>
+    <div class="result-grid">
+      <div class="result-stat">
+        <div class="label">Total Invested</div>
+        <div class="value">${fmt(totalInvested)}</div>
+        <div class="sub">${fmtN(totalQty, 0)} shares</div>
+      </div>
+      <div class="result-stat">
+        <div class="label">Current Value</div>
+        <div class="value accent">${fmt(totalCurrentValue)}</div>
+        <div class="sub">@ ${fmt(cmp)} CMP</div>
+      </div>
+      <div class="result-stat">
+        <div class="label">Unrealized P&L</div>
+        <div class="value ${totalGainLoss >= 0 ? 'green' : 'red'}">${totalGainLoss >= 0 ? '+' : ''}${fmt(totalGainLoss)}</div>
+        <div class="sub">${((totalGainLoss / totalInvested) * 100).toFixed(1)}% overall</div>
+      </div>
+      <div class="result-stat">
+        <div class="label">STCG Gain / Loss</div>
+        <div class="value ${totalSTCGain - totalSTCLoss >= 0 ? 'green' : 'red'}">${fmt(totalSTCGain - totalSTCLoss)}</div>
+        <div class="sub">Tax if sold now: ${fmt(stcgTax)} (20%)</div>
+      </div>
+      <div class="result-stat">
+        <div class="label">LTCG Gain / Loss</div>
+        <div class="value ${totalLTCGain - totalLTCLoss >= 0 ? 'green' : 'red'}">${fmt(totalLTCGain - totalLTCLoss)}</div>
+        <div class="sub">Tax if sold now: ${fmt(ltcgTax)} (12.5%)</div>
+      </div>
+      <div class="result-stat">
+        <div class="label">Tax Saving (wait for LTCG)</div>
+        <div class="value green">${fmt(Math.max(0, stcgTax - ltcgTax))}</div>
+        <div class="sub">by holding STCG lots longer</div>
+      </div>
+    </div>
+    <div class="insight-box" style="margin-top:14px;">
+      <div class="insight-title">💡 What This Means</div>
+      <ul>
+        ${rows.filter(r => !r.isLTCG && r.gain > 0).length > 0
+          ? `<li>You have <strong>${rows.filter(r => !r.isLTCG && r.gain > 0).length} STCG lot(s) with unrealized gains</strong>. Waiting converts them to LTCG (taxed at 12.5% vs 20%).</li>`
+          : ''}
+        ${totalLTCGain > LTCG_EXEMPTION
+          ? `<li>LTCG above ₹1.25L exemption = <strong>${fmt(totalLTCGain - LTCG_EXEMPTION)}</strong> taxable at 12.5%.</li>`
+          : `<li>LTCG gains of ${fmt(totalLTCGain)} are within the <strong>₹1.25L annual exemption</strong> — zero LTCG tax.</li>`}
+        ${stcgTax > 0 ? `<li>If you sell STCG lots today, estimated tax = <strong>${fmt(stcgTax)}</strong> at 20% flat.</li>` : ''}
+        <li>Tax figures are <em>estimates</em>. Surcharge, cess, and set-off rules may apply. Consult a CA.</li>
+      </ul>
+    </div>
+  `;
+
+  resultsEl.style.display = 'block';
+  resultsEl.querySelectorAll('.card').forEach(c => c.classList.add('show'));
+}
+
+// ─────────────────────────────────────────────
+// Init with sample data
+// ─────────────────────────────────────────────
+// Start with one empty row in each section
+addBuyRow();
+addSellRow();
+addLotRow();
+</script>
+</body>
+</html>
