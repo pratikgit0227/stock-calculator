@@ -478,10 +478,279 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   .index-fetch-row { grid-template-columns:1fr 1fr; }
   .index-fetch-row .btn-fetch { grid-column:span 2; }
   .decision-strip { grid-template-columns:1fr 1fr; }
+  .wa-two-col { grid-template-columns:1fr; }
+  .ohlc-table { font-size:.7rem; }
+  .ohlc-table th,.ohlc-table td { padding:6px 7px; }
+  .ohlc-summary-bar { gap:8px; }
+  .price-main { font-size:1.15rem; }
 }
+
+/* ── ONBOARDING MODAL ───────────────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; z-index:1000;
+  background:rgba(10,15,40,.72); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px; opacity:0; transition:opacity .25s;
+}
+.modal-overlay.visible { opacity:1; }
+.modal-box {
+  background:var(--white); border-radius:16px;
+  max-width:560px; width:100%;
+  box-shadow:0 24px 80px rgba(27,42,107,.28),0 8px 24px rgba(27,42,107,.15);
+  overflow:hidden; transform:translateY(16px); transition:transform .28s;
+  max-height:90vh; overflow-y:auto;
+}
+.modal-overlay.visible .modal-box { transform:translateY(0); }
+.modal-header {
+  background:var(--navy); padding:24px 28px 20px;
+  position:relative; overflow:hidden;
+}
+.modal-header::before { content:''; position:absolute; top:-40px; right:-40px; width:140px; height:140px; background:var(--teal); border-radius:50%; opacity:.12; }
+.modal-header::after  { content:''; position:absolute; bottom:-30px; left:-30px; width:90px; height:90px; background:var(--gold); border-radius:50%; opacity:.1; }
+.modal-brand { display:flex; align-items:center; gap:10px; margin-bottom:14px; position:relative; z-index:1; }
+.modal-brand-name { font-family:'Playfair Display',serif; font-size:13px; font-weight:900; color:var(--gold-lt); letter-spacing:.5px; }
+.modal-title { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:900; color:var(--white); line-height:1.25; position:relative; z-index:1; }
+.modal-subtitle { font-size:.78rem; color:rgba(255,255,255,.55); margin-top:6px; position:relative; z-index:1; }
+.modal-dot-bar { height:4px; background-image:radial-gradient(circle,var(--gold) 1.5px,transparent 1.5px); background-size:10px 4px; opacity:.6; }
+.modal-body { padding:24px 28px; }
+.modal-steps { display:flex; flex-direction:column; gap:14px; margin-bottom:20px; }
+.modal-step { display:flex; gap:14px; align-items:flex-start; }
+.step-num {
+  flex-shrink:0; width:32px; height:32px; border-radius:50%;
+  background:linear-gradient(135deg,var(--navy),var(--navy-lt));
+  color:var(--gold-lt); font-weight:800; font-size:.8rem;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif;
+}
+.step-icon { flex-shrink:0; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+.si-buy    { background:var(--teal-pale); }
+.si-sell   { background:var(--red-bg); }
+.si-exit   { background:var(--navy-pale); }
+.si-calc   { background:var(--gold-pale); }
+.step-content .step-title { font-weight:700; font-size:.88rem; color:var(--navy); margin-bottom:3px; }
+.step-content .step-desc  { font-size:.78rem; color:var(--muted); line-height:1.6; }
+.modal-tip {
+  background:var(--gold-pale); border:1.5px solid var(--gold-soft);
+  border-radius:10px; padding:12px 16px;
+  font-size:.75rem; color:var(--gold-dk); line-height:1.7; margin-bottom:20px;
+}
+.modal-tip strong { color:var(--navy); }
+.modal-cta {
+  width:100%; padding:13px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-lt));
+  color:var(--gold-lt); border:none; border-radius:10px;
+  font-size:.92rem; font-weight:700; cursor:pointer;
+  font-family:'Playfair Display',serif; letter-spacing:.3px;
+  transition:opacity .15s; box-shadow:0 4px 14px rgba(27,42,107,.25);
+}
+.modal-cta:hover { opacity:.88; }
+.modal-close-top {
+  position:absolute; top:14px; right:16px; z-index:2;
+  background:rgba(255,255,255,.12); border:none; color:rgba(255,255,255,.6);
+  width:28px; height:28px; border-radius:50%; cursor:pointer;
+  font-size:.85rem; display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.modal-close-top:hover { background:rgba(255,255,255,.22); color:white; }
+/* help button in header */
+.help-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.25); background:transparent;
+  color:rgba(255,255,255,.65); font-size:.8rem; font-weight:700;
+  cursor:pointer; transition:all .15s; font-family:'Poppins',sans-serif;
+  flex-shrink:0;
+}
+.help-btn:hover { border-color:var(--gold-lt); color:var(--gold-lt); background:rgba(232,149,42,.1); }
+
+/* ── STOCK TRACKER ──────────────────────────────────── */
+.tracker-search-wrap { position:relative; }
+.tracker-search-input { font-size:.9rem !important; padding:11px 14px !important; }
+.search-dropdown {
+  position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:200;
+  background:var(--white); border:1.5px solid var(--mid);
+  border-radius:10px; box-shadow:var(--shadow-md);
+  max-height:320px; overflow-y:auto; display:none;
+}
+.search-loading { padding:14px 16px; font-size:.8rem; color:var(--muted); }
+.search-item { padding:11px 16px; cursor:pointer; border-bottom:1px solid var(--mid); transition:background .12s; }
+.search-item:last-child { border-bottom:none; }
+.search-item:hover { background:var(--teal-pale); }
+.si-name { font-size:.85rem; font-weight:600; color:var(--navy); margin-bottom:3px; }
+.si-meta { display:flex; align-items:center; gap:8px; font-size:.72rem; color:var(--muted); }
+
+/* stock cards */
+.stock-tracker-card { padding:18px 20px; }
+.stc-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.stc-title-block { flex:1; min-width:0; }
+.stc-name { font-family:'Playfair Display',serif; font-size:.98rem; font-weight:700; color:var(--navy); line-height:1.2; }
+.stc-meta { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-top:4px; }
+
+/* price row */
+.price-display { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:var(--off); border-radius:8px; border:1.5px solid var(--mid); }
+.price-main { font-family:'Playfair Display',serif; font-size:1.35rem; font-weight:900; color:var(--navy); }
+.price-change { font-size:.82rem; font-weight:700; padding:3px 9px; border-radius:6px; }
+.price-change.up   { background:var(--green-bg); color:var(--green); }
+.price-change.down { background:var(--red-bg);   color:var(--red);   }
+.price-date { font-size:.7rem; color:var(--muted); margin-left:auto; }
+
+/* expand button */
+.stc-expand-btn {
+  width:100%; padding:9px 14px; background:var(--off);
+  border:1.5px solid var(--mid); border-radius:8px; cursor:pointer;
+  font-size:.78rem; font-weight:600; color:var(--navy);
+  transition:all .15s; font-family:'Poppins',sans-serif;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.stc-expand-btn:hover { background:var(--teal-pale); border-color:var(--teal); }
+.stc-ohlc-wrap { margin-top:12px; }
+
+/* OHLC summary bar */
+.ohlc-summary-bar {
+  display:flex; gap:16px; flex-wrap:wrap;
+  padding:10px 14px; background:var(--navy-pale);
+  border-radius:8px; margin-bottom:10px; border:1.5px solid rgba(27,42,107,.1);
+}
+.ohlc-stat { }
+.ohlc-stat-label { font-size:.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.ohlc-stat-val { font-size:.92rem; font-weight:800; font-family:'Playfair Display',serif; }
+
+/* OHLC table */
+.ohlc-scroll { overflow-x:auto; border-radius:8px; border:1.5px solid var(--mid); }
+.ohlc-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.ohlc-table th {
+  background:var(--navy); color:var(--gold-lt); padding:9px 10px;
+  text-align:left; font-size:.65rem; text-transform:uppercase;
+  letter-spacing:.5px; font-weight:700; white-space:nowrap;
+}
+.ohlc-table th:first-child { border-radius:6px 0 0 0; }
+.ohlc-table th:last-child  { border-radius:0 6px 0 0; }
+.ohlc-table td { padding:8px 10px; border-bottom:1px solid var(--mid); white-space:nowrap; }
+.ohlc-table tr:last-child td { border-bottom:none; }
+.ohlc-table tr:not(.event-row):hover td { background:var(--off); }
+.event-row td {
+  background:var(--gold-pale) !important; color:var(--gold-dk);
+  font-size:.72rem; font-weight:600; padding:6px 10px;
+  border-left:3px solid var(--gold);
+}
+.event-row.event-split td { background:var(--purple-pale) !important; color:var(--purple); border-left-color:var(--purple); }
+
+/* empty state */
+.empty-watchlist-msg {
+  text-align:center; padding:40px 20px;
+  color:var(--muted); font-size:.85rem; line-height:1.9;
+  background:var(--white); border:1.5px dashed var(--mid);
+  border-radius:var(--radius);
+}
+
+/* WhatsApp settings */
+.wa-toggle-header { display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+.wa-toggle-arrow { font-size:.85rem; color:var(--teal-lt); transition:transform .2s; }
+.wa-toggle-arrow.open { transform:rotate(180deg); }
+.wa-form-body { margin-top:16px; }
+.wa-two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.wa-instructions {
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+  border-radius:8px; padding:12px 14px; margin-bottom:14px;
+  font-size:.72rem; color:rgba(255,255,255,.5); line-height:1.9;
+}
+.wa-instructions strong { color:rgba(255,255,255,.85); }
+.wa-instructions a { color:var(--teal-lt); }
+.wa-field-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--teal-lt); margin-bottom:5px; }
+.wa-input { width:100%; background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.15); border-radius:8px; color:rgba(255,255,255,.9); padding:8px 10px; font-size:.875rem; outline:none; font-family:'Poppins',sans-serif; transition:border-color .2s; }
+.wa-input:focus { border-color:var(--teal); }
+.wa-input::placeholder { color:rgba(255,255,255,.25); }
+.wa-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.wa-btn-save { flex:1; padding:9px; background:linear-gradient(135deg,var(--gold),var(--gold-dk)); color:var(--white); border:none; border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:700; font-family:'Poppins',sans-serif; transition:opacity .15s; }
+.wa-btn-save:hover { opacity:.88; }
+.wa-btn-test { padding:9px 16px; background:transparent; color:var(--teal-lt); border:1.5px solid rgba(109,191,191,.4); border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:600; font-family:'Poppins',sans-serif; transition:all .15s; white-space:nowrap; }
+.wa-btn-test:hover { background:rgba(109,191,191,.1); }
+.wa-btn-test:disabled { opacity:.45; cursor:not-allowed; }
+.toggle-wrap { display:flex; align-items:center; gap:10px; margin-top:12px; }
+.toggle-label-text { font-size:.75rem; color:rgba(255,255,255,.6); line-height:1.5; }
+.toggle-input { position:absolute; opacity:0; width:0; height:0; }
+.toggle-slider { display:inline-flex; flex-shrink:0; width:40px; height:22px; background:rgba(255,255,255,.2); border-radius:11px; position:relative; cursor:pointer; transition:background .2s; }
+.toggle-slider::before { content:''; position:absolute; width:16px; height:16px; background:white; border-radius:50%; top:3px; left:3px; transition:transform .2s; }
+.toggle-input:checked + .toggle-slider { background:var(--teal); }
+.toggle-input:checked + .toggle-slider::before { transform:translateX(18px); }
 </style>
 </head>
 <body>
+
+<!-- ══ ONBOARDING MODAL ══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="guide-modal" onclick="handleModalOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <button class="modal-close-top" onclick="closeGuide()">✕</button>
+      <div class="modal-brand">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+          <ellipse cx="32" cy="36" rx="10" ry="14" fill="#E8952A" opacity=".9"/>
+          <path d="M22 30 Q10 18 4 8 Q14 14 22 26Z" fill="#F5C36A"/>
+          <path d="M42 30 Q54 18 60 8 Q50 14 42 26Z" fill="#8B6FCF"/>
+          <circle cx="32" cy="22" r="8" fill="#F5C36A"/>
+          <path d="M32 26 L29 30 L35 30Z" fill="#E8952A"/>
+          <circle cx="34" cy="21" r="2" fill="#1B2A6B"/>
+          <circle cx="34.5" cy="20.5" r=".7" fill="white"/>
+        </svg>
+        <span class="modal-brand-name">AARTHIK UDAAN</span>
+      </div>
+      <div class="modal-title">Welcome — How to use this calculator</div>
+      <div class="modal-subtitle">Free tool by CA Pratik · Built for Indian investors · No login needed</div>
+    </div>
+    <div class="modal-dot-bar"></div>
+    <div class="modal-body">
+
+      <!-- Tab guide chips -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+        <span class="chip chip-navy" style="font-size:.68rem;">📉 Tab 1 — Breakeven &amp; Exit</span>
+        <span class="chip chip-teal" style="font-size:.68rem;">📅 Tab 2 — STCG / LTCG</span>
+        <span class="chip chip-purple" style="font-size:.68rem;">📈 Tab 3 — Stock Tracker</span>
+      </div>
+
+      <!-- Steps -->
+      <div class="modal-steps">
+        <div class="modal-step">
+          <div class="step-icon si-buy">📥</div>
+          <div class="step-content">
+            <div class="step-title">Enter your Buy transactions</div>
+            <div class="step-desc">Add each purchase — date, quantity, and buy price. Use <strong>+ Add Row</strong> for multiple buys, or paste directly from Excel using the 📋 button. Supports DD/MM/YYYY format.</div>
+          </div>
+        </div>
+        <div class="modal-step">
+          <div class="step-icon si-sell">📤</div>
+          <div class="step-content">
+            <div class="step-title">Add Sell / loss-booking entries <span style="font-size:.7rem;color:var(--muted);font-weight:400;">(optional)</span></div>
+            <div class="step-desc">If you've already sold some shares or booked a partial loss, enter those here. The calculator will recompute your breakeven on the remaining shares.</div>
+          </div>
+        </div>
+        <div class="modal-step">
+          <div class="step-icon si-exit">🎯</div>
+          <div class="step-content">
+            <div class="step-title">Set your Exit Strategy <span style="font-size:.7rem;color:var(--muted);font-weight:400;">(optional)</span></div>
+            <div class="step-desc">Choose a holding period and a return benchmark — Bank FD, Nifty 50 / Sensex, or your own target %. The calculator will show your <strong>target sell price</strong>, expected gain, and tax (STCG/LTCG).</div>
+          </div>
+        </div>
+        <div class="modal-step">
+          <div class="step-icon si-calc">📊</div>
+          <div class="step-content">
+            <div class="step-title">Hit Calculate — get your full picture</div>
+            <div class="step-desc">See your new breakeven price, holding status, target exit price, tax liability, and a decision card: <em>should you sell now or wait for LTCG?</em></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-tip">
+        💡 <strong>Tab 2 (STCG → LTCG Tracker):</strong> Enter all your buy lots with dates and a current market price — it shows which lots are STCG vs LTCG, unrealised P&amp;L, and how much tax you save by waiting.<br>
+        📈 <strong>Tab 3 (Stock Tracker):</strong> Search NSE/BSE stocks, track daily OHLC &amp; corporate events, and get WhatsApp closing price alerts at 3:30 PM IST — all free, no login.
+      </div>
+
+      <button class="modal-cta" onclick="closeGuide()">Got it — Start Calculating →</button>
+      <p style="text-align:center;font-size:.68rem;color:var(--muted);margin-top:10px;">
+        Press <strong>?</strong> in the header anytime to reopen this guide
+      </p>
+    </div>
+  </div>
+</div>
 
 <!-- ══ SITE HEADER ══════════════════════════════════════════════════ -->
 <div class="site-header">
@@ -509,6 +778,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       <h1>Stock <span>Breakeven &amp;<br>Exit Strategy</span> Calculator</h1>
       <p>Breakeven · Target Exit Price · STCG / LTCG Tax · When to Sell</p>
       <div class="header-socials">
+        <button class="help-btn" onclick="openGuide()" title="How to use this tool">?</button>
         <a class="social-link" href="https://x.com/pratik0227" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.258 5.625 5.906-5.625zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
           @pratik0227
@@ -531,6 +801,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('breakeven',this)">📉 Breakeven &amp; Exit Strategy</button>
       <button class="tab-btn" onclick="switchTab('ltcg',this)">📅 STCG → LTCG Tracker</button>
+      <button class="tab-btn" onclick="switchTab('tracker',this)">📈 Stock Tracker</button>
     </div>
   </div>
 
@@ -772,6 +1043,91 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════════════
+       TAB 3 — STOCK TRACKER
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-tracker" class="tab-panel">
+
+    <!-- Search Card -->
+    <div class="card teal-panel">
+      <div class="section-label">Step 1</div>
+      <div class="card-title">🔍 Search &amp; Add Stocks to Watchlist</div>
+      <div class="tracker-search-wrap">
+        <input type="text" class="tracker-search-input" id="stock-search-input"
+               placeholder="Search NSE / BSE stock — e.g. Reliance, TCS, HDFC Bank, INFY…"
+               autocomplete="off" oninput="onSearchInput(this.value)" />
+        <div class="search-dropdown" id="search-dropdown"></div>
+      </div>
+      <div id="selected-stock-preview" style="display:none;margin-top:10px;"></div>
+      <button class="btn-calc" id="add-stock-btn"
+              style="display:none;margin-top:10px;padding:10px;font-size:.85rem;"
+              onclick="addSelectedStock()">➕ Add to Watchlist</button>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.7;">
+        📌 <strong>NSE (.NS) &amp; BSE (.BO)</strong> equities supported · Data powered by Yahoo Finance ·
+        Watchlist saved in your browser — persists across visits
+      </p>
+    </div>
+
+    <!-- WhatsApp Notification Card -->
+    <div class="card navy-panel" style="position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-24px;right:-24px;width:110px;height:110px;background:var(--teal);border-radius:50%;opacity:.08;pointer-events:none;"></div>
+      <div style="position:relative;z-index:1;">
+        <div class="wa-toggle-header" onclick="toggleWAForm()">
+          <div class="card-title" style="margin-bottom:0;color:var(--gold-lt);">
+            📱 WhatsApp Daily Closing Price Alerts
+            <span class="badge badge-info" style="font-size:.6rem;margin-left:4px;">3:30 PM IST</span>
+          </div>
+          <span class="wa-toggle-arrow" id="wa-form-arrow">▼</span>
+        </div>
+        <div class="wa-form-body" id="wa-form-body" style="display:none;">
+          <div class="stripe" style="margin-top:12px;">
+            <div style="background:var(--gold);flex:2;"></div>
+            <div style="background:var(--teal);flex:1;"></div>
+          </div>
+          <div class="wa-instructions">
+            <strong>How to activate (free, one-time setup):</strong><br>
+            1. Send a WhatsApp message to <strong>+34 644 70 30 85</strong>:<br>
+            &nbsp;&nbsp;&nbsp;<em>I allow callmebot to send me messages</em><br>
+            2. You'll receive your free API key by reply within seconds.<br>
+            3. Enter your phone (with country code e.g. <strong>+919876543210</strong>) &amp; API key below.<br>
+            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">→ Full instructions at callmebot.com</a><br>
+            <strong style="color:rgba(255,200,100,.8);">⚠️ Page must remain open for scheduled alerts to fire.</strong>
+          </div>
+          <div class="wa-two-col">
+            <div>
+              <div class="wa-field-label">Phone (with country code)</div>
+              <input type="text" id="wa-phone" class="wa-input" placeholder="+919876543210" />
+            </div>
+            <div>
+              <div class="wa-field-label">CallMeBot API Key</div>
+              <input type="text" id="wa-apikey" class="wa-input" placeholder="e.g. 123456" />
+            </div>
+          </div>
+          <div class="toggle-wrap">
+            <input type="checkbox" class="toggle-input" id="wa-enabled" />
+            <label class="toggle-slider" for="wa-enabled"></label>
+            <span class="toggle-label-text">Enable daily 3:30 PM IST closing price alert (page must stay open)</span>
+          </div>
+          <div class="wa-actions">
+            <button class="wa-btn-save" onclick="saveWAForm()">💾 Save Settings</button>
+            <button class="wa-btn-test" id="wa-test-btn" onclick="sendTestWA()">📱 Send Test Message</button>
+          </div>
+          <div id="wa-save-msg" style="display:none;font-size:.75rem;margin-top:8px;padding:6px 10px;border-radius:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Watchlist Section -->
+    <div class="section-label" style="margin-top:6px;">My Watchlist</div>
+    <p class="empty-watchlist-msg" id="empty-watchlist-msg">
+      📋 Your watchlist is empty.<br>
+      Search for NSE / BSE stocks above and add them to start tracking.<br>
+      <span style="font-size:.75rem;opacity:.6;">Your data is saved locally in the browser — it persists when you return.</span>
+    </p>
+    <div id="watchlist-container"></div>
+
+  </div><!-- /tab-tracker -->
+
   <!-- ══ FOOTER ═══════════════════════════════════════════════════ -->
   <div class="site-footer">
     <div class="footer-dot-bar"></div>
@@ -837,6 +1193,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
+  if(name==='tracker') initTracker();
 }
 
 // ── Excel paste ────────────────────────────────────────────────────
@@ -1157,9 +1514,454 @@ function calcLTCG(){
   document.getElementById('ltcg-results').style.display='block';
 }
 
+// ── Onboarding guide modal ─────────────────────────────────────────
+const GUIDE_KEY='aarthik_guide_seen_v1';
+function openGuide(){
+  const m=document.getElementById('guide-modal');
+  m.style.display='flex';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>m.classList.add('visible')));
+}
+function closeGuide(){
+  const m=document.getElementById('guide-modal');
+  m.classList.remove('visible');
+  setTimeout(()=>m.style.display='none',260);
+  localStorage.setItem(GUIDE_KEY,'1');
+}
+function handleModalOverlayClick(e){
+  if(e.target===document.getElementById('guide-modal')) closeGuide();
+}
+// Show on first visit — hidden by default via display:none set below
+(function(){
+  const m=document.getElementById('guide-modal');
+  m.style.display='none';
+  if(!localStorage.getItem(GUIDE_KEY)){
+    setTimeout(openGuide,350); // slight delay so page renders first
+  }
+})();
+
 // ── Init ───────────────────────────────────────────────────────────
 addBuyRow(); addSellRow(); addLotRow();
 document.getElementById('exit-results-wrap').style.display='none';
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB 3 — STOCK TRACKER
+   NSE/BSE stock search · OHLC history · Corporate events · WhatsApp
+═══════════════════════════════════════════════════════════════════ */
+
+// ── localStorage helpers ──────────────────────────────────────────
+const WL_KEY='aarthik_watchlist', WA_KEY='aarthik_wa_settings';
+function getWatchlist(){try{return JSON.parse(localStorage.getItem(WL_KEY))||[];}catch{return[];}}
+function saveWatchlist(l){localStorage.setItem(WL_KEY,JSON.stringify(l));}
+function getWASettings(){try{return JSON.parse(localStorage.getItem(WA_KEY))||{};}catch{return {};}}
+function saveWASettings(s){localStorage.setItem(WA_KEY,JSON.stringify(s));}
+
+// ── CORS proxy fetch helper ───────────────────────────────────────
+async function proxyFetch(url){
+  const proxies=[
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  for(const p of proxies){
+    try{
+      const res=await fetch(p,{signal:AbortSignal.timeout(8000)});
+      const json=await res.json();
+      return json;
+    }catch(_){}
+  }
+  return null;
+}
+
+// ── Stock Search (autocomplete) ───────────────────────────────────
+let searchTimer=null, selectedStock=null;
+
+function onSearchInput(val){
+  clearTimeout(searchTimer);
+  const dd=document.getElementById('search-dropdown');
+  if(!val||val.length<2){dd.innerHTML='';dd.style.display='none';return;}
+  dd.innerHTML='<div class="search-loading">🔍 Searching…</div>';
+  dd.style.display='block';
+  searchTimer=setTimeout(()=>doSearchStocks(val),420);
+}
+
+async function doSearchStocks(q){
+  const dd=document.getElementById('search-dropdown');
+  const url=`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&lang=en-IN&region=IN&quotesCount=20&newsCount=0&enableFuzzyQuery=false&searchType=ALL`;
+  const data=await proxyFetch(url);
+  // Yahoo Finance search response shape varies across proxies
+  const quotes=(data?.finance?.result?.[0]?.quotes)||(data?.quotes)||[];
+  if(!quotes||!quotes.length){
+    dd.innerHTML='<div class="search-loading">⚠️ Search unavailable right now. Try the full ticker e.g. <strong>RELIANCE.NS</strong></div>';
+    return;
+  }
+  const indian=quotes.filter(q=>q.symbol&&(q.symbol.endsWith('.NS')||q.symbol.endsWith('.BO'))&&q.quoteType==='EQUITY');
+  if(!indian.length){
+    dd.innerHTML='<div class="search-loading">No Indian equities found. Try another name or ticker.</div>';
+    return;
+  }
+  dd.innerHTML=indian.slice(0,12).map(s=>{
+    const exch=s.symbol.endsWith('.NS')?'NSE':'BSE';
+    const name=(s.longname||s.shortname||s.symbol).replace(/'/g,'&#39;');
+    const sym=s.symbol.replace(/'/g,'&#39;');
+    return `<div class="search-item" onclick="selectSearchResult('${sym}','${name}','${exch}')">
+      <div class="si-name">${name}</div>
+      <div class="si-meta"><span class="badge badge-info">${exch}</span><span>${s.symbol}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function selectSearchResult(ticker,name,exchange){
+  selectedStock={ticker,name,exchange};
+  document.getElementById('stock-search-input').value=name;
+  const dd=document.getElementById('search-dropdown');
+  dd.innerHTML=''; dd.style.display='none';
+  document.getElementById('selected-stock-preview').style.display='block';
+  document.getElementById('selected-stock-preview').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--teal-pale);border:1.5px solid rgba(109,191,191,.45);border-radius:8px;">
+      <span style="font-size:1.3rem;">📈</span>
+      <div>
+        <div style="font-weight:700;font-size:.88rem;color:var(--navy);">${name}</div>
+        <div style="font-size:.72rem;color:var(--muted);">${exchange}: ${ticker}</div>
+      </div>
+      <span class="badge badge-info" style="margin-left:auto;">${exchange}</span>
+    </div>`;
+  document.getElementById('add-stock-btn').style.display='block';
+}
+
+function addSelectedStock(){
+  if(!selectedStock) return;
+  const list=getWatchlist();
+  if(list.find(s=>s.ticker===selectedStock.ticker)){
+    alert(`${selectedStock.name} is already in your watchlist.`);
+    return;
+  }
+  list.push({ticker:selectedStock.ticker,name:selectedStock.name,exchange:selectedStock.exchange,addedDate:todayStr()});
+  saveWatchlist(list);
+  // reset UI
+  document.getElementById('stock-search-input').value='';
+  document.getElementById('search-dropdown').innerHTML='';
+  document.getElementById('search-dropdown').style.display='none';
+  document.getElementById('selected-stock-preview').style.display='none';
+  document.getElementById('add-stock-btn').style.display='none';
+  selectedStock=null;
+  renderWatchlist();
+  // load the price for the newly added card
+  const stock=list[list.length-1];
+  setTimeout(()=>loadQuotePrice(stock.ticker),300);
+}
+
+// ── Render Watchlist ──────────────────────────────────────────────
+function renderWatchlist(){
+  const list=getWatchlist();
+  const container=document.getElementById('watchlist-container');
+  const emptyMsg=document.getElementById('empty-watchlist-msg');
+  // remove old cards
+  container.querySelectorAll('.stock-tracker-card').forEach(c=>c.remove());
+  emptyMsg.style.display=list.length?'none':'block';
+  list.forEach(stock=>{
+    const el=document.createElement('div');
+    el.className='card stock-tracker-card';
+    el.id='stcard-'+safeId(stock.ticker);
+    el.innerHTML=buildStockCardHTML(stock);
+    container.appendChild(el);
+  });
+}
+
+function safeId(ticker){return ticker.replace(/[^a-zA-Z0-9]/g,'_');}
+
+function buildStockCardHTML(stock){
+  const added=stock.addedDate?new Date(stock.addedDate+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+  const sid=safeId(stock.ticker);
+  return `
+    <div class="stc-header">
+      <div class="stc-title-block">
+        <div class="stc-name">${stock.name}</div>
+        <div class="stc-meta">
+          <span class="badge badge-info">${stock.exchange}</span>
+          <span style="font-size:.72rem;color:var(--muted);">${stock.ticker}</span>
+          <span style="font-size:.68rem;color:var(--muted);">· Added ${added}</span>
+        </div>
+      </div>
+      <button class="btn-remove" onclick="removeFromWatchlist('${stock.ticker}')" title="Remove">✕</button>
+    </div>
+    <div id="price-${sid}"><div style="padding:10px 14px;font-size:.78rem;color:var(--muted);background:var(--off);border-radius:8px;margin-bottom:12px;">⏳ Loading price…</div></div>
+    <button class="stc-expand-btn" onclick="toggleOHLC('${stock.ticker}','${stock.addedDate||todayStr()}')">
+      📊 Show OHLC History &amp; Events <span class="expand-arrow">▼</span>
+    </button>
+    <div class="stc-ohlc-wrap" id="ohlc-${sid}" style="display:none;"></div>
+  `;
+}
+
+function removeFromWatchlist(ticker){
+  if(!confirm('Remove '+ticker+' from your watchlist?')) return;
+  saveWatchlist(getWatchlist().filter(s=>s.ticker!==ticker));
+  const el=document.getElementById('stcard-'+safeId(ticker));
+  if(el) el.remove();
+  const list=getWatchlist();
+  document.getElementById('empty-watchlist-msg').style.display=list.length?'none':'block';
+}
+
+// ── OHLC History Toggle ───────────────────────────────────────────
+const ohlcCache={};
+
+async function toggleOHLC(ticker,addedDate){
+  const sid=safeId(ticker);
+  const wrap=document.getElementById('ohlc-'+sid);
+  const btn=wrap?.previousElementSibling;
+  if(!wrap) return;
+  if(wrap.style.display!=='none'){
+    wrap.style.display='none';
+    if(btn){btn.querySelector('.expand-arrow').textContent='▼';}
+    return;
+  }
+  wrap.style.display='block';
+  if(btn){btn.querySelector('.expand-arrow').textContent='▲';}
+  if(ohlcCache[ticker]){renderOHLC(ticker,ohlcCache[ticker]);return;}
+  wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:.82rem;">⏳ Loading historical data from Yahoo Finance…</div>';
+  const startDate=addedDate||todayStr();
+  const startTs=Math.floor(new Date(startDate+'T00:00:00Z').getTime()/1000);
+  const endTs=Math.floor(Date.now()/1000)+86400;
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${startTs}&period2=${endTs}&interval=1d&events=div%2Csplits&includeAdjustedClose=true`;
+  const data=await proxyFetch(url);
+  const chartData=data?.chart?.result?.[0];
+  if(!chartData){
+    wrap.innerHTML=`<div style="padding:16px;background:var(--red-bg);border-radius:8px;font-size:.8rem;color:var(--red);border:1.5px solid #fca5a5;">
+      ⚠️ Could not load data for <strong>${ticker}</strong>. Yahoo Finance API may be temporarily unavailable via proxies.<br>
+      <a href="https://finance.yahoo.com/quote/${ticker}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:600;">→ View on finance.yahoo.com</a>
+    </div>`;
+    return;
+  }
+  ohlcCache[ticker]=chartData;
+  renderOHLC(ticker,chartData);
+  updatePriceDisplay(ticker,chartData);
+}
+
+// ── Parse helpers ─────────────────────────────────────────────────
+function parseOHLC(chartData){
+  const ts=chartData.timestamp||[];
+  const q=chartData.indicators?.quote?.[0]||{};
+  return ts.map((t,i)=>({
+    date:new Date(t*1000),
+    open:q.open?.[i],
+    high:q.high?.[i],
+    low:q.low?.[i],
+    close:q.close?.[i],
+    volume:q.volume?.[i]
+  })).filter(r=>r.close!=null);
+}
+
+function parseEvents(chartData){
+  const ev=[];
+  Object.values(chartData.events?.dividends||{}).forEach(d=>ev.push({dateKey:new Date(d.date*1000).toISOString().split('T')[0],type:'dividend',amount:d.amount}));
+  Object.values(chartData.events?.splits||{}).forEach(s=>ev.push({dateKey:new Date(s.date*1000).toISOString().split('T')[0],type:'split',ratio:`${s.numerator}:${s.denominator}`}));
+  const map={};
+  ev.forEach(e=>{(map[e.dateKey]=map[e.dateKey]||[]).push(e);});
+  return map;
+}
+
+function fmtVol(v){
+  if(!v&&v!==0) return '—';
+  if(v>=10000000) return (v/10000000).toFixed(1)+'Cr';
+  if(v>=100000) return (v/100000).toFixed(1)+'L';
+  if(v>=1000) return (v/1000).toFixed(1)+'K';
+  return Number(v).toFixed(0);
+}
+
+// ── Render OHLC table ─────────────────────────────────────────────
+function renderOHLC(ticker,chartData){
+  const sid=safeId(ticker);
+  const wrap=document.getElementById('ohlc-'+sid);
+  if(!wrap) return;
+  const rows=parseOHLC(chartData);
+  const evMap=parseEvents(chartData);
+  if(!rows.length){wrap.innerHTML='<div style="padding:14px;color:var(--muted);font-size:.8rem;">No trading data for the selected period.</div>';return;}
+
+  const rowsRev=[...rows].reverse();
+  const allHighs=rows.map(r=>r.high).filter(Boolean);
+  const allLows=rows.map(r=>r.low).filter(Boolean);
+  const totalReturn=rows.length>1?((rows[rows.length-1].close/rows[0].close)-1)*100:null;
+
+  let html=`<div class="ohlc-summary-bar">
+    ${allHighs.length?`<div class="ohlc-stat"><div class="ohlc-stat-label">Period High</div><div class="ohlc-stat-val val-green">₹${Math.max(...allHighs).toFixed(2)}</div></div>`:''}
+    ${allLows.length?`<div class="ohlc-stat"><div class="ohlc-stat-label">Period Low</div><div class="ohlc-stat-val val-red">₹${Math.min(...allLows).toFixed(2)}</div></div>`:''}
+    ${totalReturn!==null?`<div class="ohlc-stat"><div class="ohlc-stat-label">Period Return</div><div class="ohlc-stat-val ${totalReturn>=0?'val-green':'val-red'}">${totalReturn>=0?'+':''}${totalReturn.toFixed(2)}%</div></div>`:''}
+    <div class="ohlc-stat"><div class="ohlc-stat-label">Trading Days</div><div class="ohlc-stat-val val-navy">${rows.length}</div></div>
+  </div>
+  <div class="ohlc-scroll">
+    <table class="ohlc-table">
+      <thead><tr><th>Date</th><th>Open</th><th>High ▲</th><th>Low ▼</th><th>Close</th><th>Volume</th><th>Change</th></tr></thead>
+      <tbody>`;
+
+  rowsRev.forEach((row,i)=>{
+    const dateKey=row.date.toISOString().split('T')[0];
+    // events for this date
+    (evMap[dateKey]||[]).forEach(e=>{
+      if(e.type==='dividend')
+        html+=`<tr class="event-row event-dividend"><td colspan="7">💰 Dividend ₹${e.amount?.toFixed(2)} per share — Ex-Date: ${dateKey}</td></tr>`;
+      else if(e.type==='split')
+        html+=`<tr class="event-row event-split"><td colspan="7">✂️ Stock Split ${e.ratio} — ${dateKey}</td></tr>`;
+    });
+    const prev=rowsRev[i+1];
+    const ch=prev?(row.close-prev.close):null;
+    const chPct=prev?((row.close-prev.close)/prev.close*100):null;
+    const cls=ch===null?'':(ch>=0?'val-green':'val-red');
+    const arrow=ch===null?'—':(ch>=0?'▲ +':'▼ ')+Math.abs(ch).toFixed(2);
+    const dfmt=row.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+    html+=`<tr>
+      <td style="font-weight:600;">${dfmt}</td>
+      <td>${row.open!=null?'₹'+row.open.toFixed(2):'—'}</td>
+      <td style="color:var(--green);">${row.high!=null?'₹'+row.high.toFixed(2):'—'}</td>
+      <td style="color:var(--red);">${row.low!=null?'₹'+row.low.toFixed(2):'—'}</td>
+      <td style="font-weight:700;">${row.close!=null?'₹'+row.close.toFixed(2):'—'}</td>
+      <td style="color:var(--muted);">${fmtVol(row.volume)}</td>
+      <td class="${cls}" style="font-weight:600;font-size:.77rem;">${arrow}${chPct!=null?'<br><span style="font-size:.65rem;opacity:.75;">('+Math.abs(chPct).toFixed(2)+'%)</span>':''}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+// ── Price display ─────────────────────────────────────────────────
+function updatePriceDisplay(ticker,chartData){
+  const sid=safeId(ticker);
+  const el=document.getElementById('price-'+sid);
+  if(!el) return;
+  const rows=parseOHLC(chartData);
+  if(!rows.length) return;
+  const latest=rows[rows.length-1];
+  const prev=rows.length>1?rows[rows.length-2]:null;
+  const ch=prev?latest.close-prev.close:null;
+  const chPct=prev?((latest.close-prev.close)/prev.close*100):null;
+  const isUp=ch!==null&&ch>=0;
+  const dfmt=latest.date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+  el.innerHTML=`<div class="price-display">
+    <span class="price-main">₹${latest.close.toFixed(2)}</span>
+    ${ch!==null?`<span class="price-change ${isUp?'up':'down'}">${isUp?'▲ +':'▼ '}${Math.abs(ch).toFixed(2)} (${Math.abs(chPct).toFixed(2)}%)</span>`:''}
+    <span class="price-date">Last Close: ${dfmt}</span>
+  </div>`;
+}
+
+async function loadQuotePrice(ticker){
+  const sid=safeId(ticker);
+  const el=document.getElementById('price-'+sid);
+  if(!el) return;
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=5d&interval=1d`;
+  const data=await proxyFetch(url);
+  const chartData=data?.chart?.result?.[0];
+  if(chartData) updatePriceDisplay(ticker,chartData);
+  else el.innerHTML='<div style="padding:10px 14px;font-size:.75rem;color:var(--muted);background:var(--off);border-radius:8px;margin-bottom:12px;">Price temporarily unavailable</div>';
+}
+
+function loadAllPrices(){
+  getWatchlist().forEach(s=>loadQuotePrice(s.ticker));
+}
+
+// ── WhatsApp Notification ─────────────────────────────────────────
+let waTimer=null;
+
+async function sendWhatsAppMsg(phone,apikey,text){
+  const url=`https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(apikey)}`;
+  try{await fetch(url,{signal:AbortSignal.timeout(12000),mode:'no-cors'});return true;}
+  catch{return false;}
+}
+
+async function buildDailySummary(){
+  const list=getWatchlist();
+  if(!list.length) return '';
+  let msg='📊 Aarthik Udaan — Daily Market Close\n🕞 3:30 PM IST\n\n';
+  for(const stock of list){
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(stock.ticker)}?range=2d&interval=1d`;
+    const data=await proxyFetch(url);
+    const chartData=data?.chart?.result?.[0];
+    if(!chartData){msg+=`• ${stock.name}: Unavailable\n\n`;continue;}
+    const rows=parseOHLC(chartData);
+    if(!rows.length) continue;
+    const lat=rows[rows.length-1],prv=rows.length>1?rows[rows.length-2]:null;
+    const ch=prv?lat.close-prv.close:null;
+    const chPct=prv?((lat.close-prv.close)/prv.close*100):null;
+    msg+=`• ${stock.name} [${stock.exchange}]\n`;
+    msg+=`  Close: ₹${lat.close.toFixed(2)}`;
+    if(ch!==null) msg+=`  ${ch>=0?'▲':'▼'} ${Math.abs(ch).toFixed(2)} (${Math.abs(chPct).toFixed(2)}%)`;
+    msg+=`\n  O:₹${lat.open?.toFixed(2)||'—'} H:₹${lat.high?.toFixed(2)||'—'} L:₹${lat.low?.toFixed(2)||'—'}\n\n`;
+  }
+  msg+='https://pratikgit0227.github.io/stock-calculator';
+  return msg;
+}
+
+function scheduleNotification(){
+  if(waTimer) clearTimeout(waTimer);
+  // 3:30 PM IST = 10:00 AM UTC
+  const now=Date.now();
+  const today=new Date();
+  let target=new Date(Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate(),10,0,0,0));
+  if(now>=target.getTime()) target=new Date(target.getTime()+86400000);
+  const delay=target.getTime()-now;
+  waTimer=setTimeout(async()=>{
+    const s=getWASettings();
+    if(s.enabled&&s.phone&&s.apikey){
+      const msg=await buildDailySummary();
+      if(msg) await sendWhatsAppMsg(s.phone,s.apikey,msg);
+    }
+    scheduleNotification();
+  },delay);
+}
+
+// ── WhatsApp Settings UI ──────────────────────────────────────────
+function toggleWAForm(){
+  const body=document.getElementById('wa-form-body');
+  const arrow=document.getElementById('wa-form-arrow');
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  arrow.classList.toggle('open',open);
+}
+
+function loadWASettings(){
+  const s=getWASettings();
+  if(s.phone) document.getElementById('wa-phone').value=s.phone;
+  if(s.apikey) document.getElementById('wa-apikey').value=s.apikey;
+  if(s.enabled) document.getElementById('wa-enabled').checked=true;
+}
+
+function saveWAForm(){
+  const phone=document.getElementById('wa-phone').value.trim();
+  const apikey=document.getElementById('wa-apikey').value.trim();
+  const enabled=document.getElementById('wa-enabled').checked;
+  saveWASettings({phone,apikey,enabled});
+  const msg=document.getElementById('wa-save-msg');
+  msg.textContent='✓ Settings saved! Daily alerts scheduled at 3:30 PM IST (page must stay open).';
+  msg.style.background='var(--green-bg)'; msg.style.color='var(--green)'; msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',3500);
+  if(enabled&&phone&&apikey) scheduleNotification();
+}
+
+async function sendTestWA(){
+  const btn=document.getElementById('wa-test-btn');
+  const phone=document.getElementById('wa-phone').value.trim();
+  const apikey=document.getElementById('wa-apikey').value.trim();
+  if(!phone||!apikey){alert('Please enter your phone number and API key first.');return;}
+  btn.textContent='⏳ Sending…'; btn.disabled=true;
+  const ok=await sendWhatsAppMsg(phone,apikey,'✅ Aarthik Udaan test alert! Your daily 3:30 PM stock notifications are working. 🎉');
+  btn.textContent='📱 Send Test Message'; btn.disabled=false;
+  alert(ok?'✅ Test sent! Check WhatsApp. If not received within 1 min, verify your phone & API key.':'⚠️ Request sent (no-cors mode — delivery cannot be confirmed). Check WhatsApp.');
+}
+
+// ── Init tracker tab ──────────────────────────────────────────────
+let trackerInitDone=false;
+function initTracker(){
+  if(!trackerInitDone){
+    trackerInitDone=true;
+    loadWASettings();
+    scheduleNotification();
+    // close dropdown on outside click
+    document.addEventListener('click',e=>{
+      if(!e.target.closest('.tracker-search-wrap')){
+        const dd=document.getElementById('search-dropdown');
+        if(dd){dd.innerHTML='';dd.style.display='none';}
+      }
+    });
+  }
+  renderWatchlist();
+  loadAllPrices();
+}
 </script>
 </body>
 </html>
