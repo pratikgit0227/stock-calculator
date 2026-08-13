@@ -1213,8 +1213,23 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 ═══════════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
-const fmt    = (n,dec=2) => isNaN(n)||n===null?'—':'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:dec,maximumFractionDigits:dec});
-const fmtN   = (n,dec=2) => Number(n).toLocaleString('en-IN',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const fmt = (n, dec=2) => {
+  if(isNaN(n)||n===null) return '—';
+  const num = Number(n), neg = num < 0, abs = Math.abs(num);
+  const isWhole = Math.round(abs * 100) % 100 === 0;
+  return (neg ? '-' : '') + '₹' + abs.toLocaleString('en-IN', {
+    minimumFractionDigits: isWhole ? 0 : dec,
+    maximumFractionDigits: dec
+  });
+};
+const fmtN = (n, dec=2) => {
+  const num = Number(n), abs = Math.abs(num);
+  const isWhole = Math.round(abs * 100) % 100 === 0;
+  return num.toLocaleString('en-IN', {
+    minimumFractionDigits: isWhole ? 0 : dec,
+    maximumFractionDigits: dec
+  });
+};
 const fmtPct = n => (n>=0?'+':'')+n.toFixed(2)+'%';
 const todayStr = () => new Date().toISOString().split('T')[0];
 const daysBetween = (d1,d2) => Math.floor((new Date(d2)-new Date(d1))/86400000);
