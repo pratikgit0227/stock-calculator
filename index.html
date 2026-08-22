@@ -851,6 +851,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       <button class="tab-btn active" onclick="switchTab('breakeven',this)">📉 Breakeven &amp; Exit Strategy</button>
       <button class="tab-btn" onclick="switchTab('ltcg',this)">📅 STCG → LTCG Tracker</button>
       <button class="tab-btn" onclick="switchTab('tracker',this)">📈 Stock Tracker</button>
+      <button class="tab-btn" onclick="switchTab('portfolio',this)">📋 My Portfolio</button>
     </div>
   </div>
 
@@ -1177,6 +1178,260 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
   </div><!-- /tab-tracker -->
 
+  <!-- ════════════════════════════════════════════════════════════
+       TAB 4 — MY PORTFOLIO
+  ═══════════════════════════════════════════════════════════════ -->
+  <style>
+  .pf-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:20px; }
+  .pf-stat { background:var(--navy); color:var(--gold-lt); border-radius:12px; padding:14px 16px; text-align:center; }
+  .pf-stat .pf-val { font-family:'Playfair Display',serif; font-size:1.25rem; font-weight:700; }
+  .pf-stat .pf-lbl { font-size:.68rem; color:var(--teal-lt); margin-top:4px; letter-spacing:.04em; text-transform:uppercase; }
+  .pf-table-wrap { overflow-x:auto; }
+  table.pf-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  table.pf-table th { background:var(--navy); color:var(--gold-lt); padding:9px 10px; text-align:left; white-space:nowrap; font-weight:600; }
+  table.pf-table th.r, table.pf-table td.r { text-align:right; }
+  table.pf-table tbody tr { border-bottom:1px solid var(--mid); transition:background .15s; }
+  table.pf-table tbody tr:hover { background:var(--off); }
+  table.pf-table td { padding:9px 10px; white-space:nowrap; color:var(--ink); }
+  .pf-sym { font-weight:700; color:var(--navy); font-size:.85rem; }
+  .pf-name { color:var(--muted); font-size:.74rem; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+  .pf-pos { color:#0a8a4a; font-weight:600; }
+  .pf-neg { color:#c0392b; font-weight:600; }
+  .pf-zero { color:var(--muted); }
+  .load-calc-btn { background:var(--teal); color:#fff; border:none; padding:5px 11px; border-radius:7px; cursor:pointer; font-size:.73rem; font-weight:600; white-space:nowrap; transition:background .15s; }
+  .load-calc-btn:hover { background:var(--teal-dk); }
+  .pf-exited-toggle { background:none; border:1.5px solid var(--mid); border-radius:9px; padding:8px 16px; cursor:pointer; font-size:.82rem; color:var(--navy); font-weight:600; margin:18px 0 12px; display:flex; align-items:center; gap:8px; }
+  .pf-exited-toggle:hover { border-color:var(--teal); color:var(--teal-dk); }
+  .pf-exited-section { display:none; }
+  .pf-exited-section.open { display:block; }
+  .pf-badge-type { display:inline-block; font-size:.65rem; padding:2px 7px; border-radius:5px; font-weight:700; letter-spacing:.03em; }
+  .pf-badge-etf { background:#e8f4fd; color:#1565c0; }
+  .pf-badge-reit { background:#f3e5f5; color:#6a1b9a; }
+  .pf-badge-stock { background:#e8f5e9; color:#2e7d32; }
+  </style>
+
+  <div id="tab-portfolio" class="tab-panel">
+    <div class="card navy-panel">
+      <div class="card-title" style="color:var(--gold-lt)">📋 My Portfolio — Yukti Palawia</div>
+      <div style="font-size:.78rem;color:var(--teal-lt);margin-top:2px;">FIFO breakeven computed from IndMoney transaction history · Aug 2026</div>
+    </div>
+
+    <div class="card">
+      <div id="pf-summary" class="pf-summary"></div>
+
+      <div class="section-label" style="margin-bottom:10px;">Active Holdings <span style="font-size:.72rem;font-weight:400;color:var(--muted)">— click Load ↗ to pre-fill the Breakeven Calculator</span></div>
+      <div class="pf-table-wrap">
+        <table class="pf-table" id="pf-holdings-table">
+          <thead>
+            <tr>
+              <th>Symbol / Name</th>
+              <th>Type</th>
+              <th class="r">Qty</th>
+              <th class="r">Breakeven ₹</th>
+              <th class="r">Invested ₹</th>
+              <th class="r">Realized P&amp;L</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pf-holdings-body"></tbody>
+        </table>
+      </div>
+
+      <button class="pf-exited-toggle" onclick="toggleExited(this)">
+        <span>▶</span> Exited Positions (30 stocks)
+      </button>
+      <div class="pf-exited-section" id="pf-exited-section">
+        <div class="pf-table-wrap">
+          <table class="pf-table">
+            <thead>
+              <tr>
+                <th>Symbol / Name</th>
+                <th class="r">Realized P&amp;L</th>
+                <th class="r">Sell Proceeds</th>
+              </tr>
+            </thead>
+            <tbody id="pf-exited-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="watermark">AARTHIK UDAAN</div>
+  </div><!-- /tab-portfolio -->
+
+  <script>
+  // ── PORTFOLIO DATA (FIFO-computed from IndMoney transactions) ────
+  const PF_HOLDINGS = {
+    "NTPC":       {name:"NTPC Ltd",               buys:[{qty:45,price:342.0,date:"2026-07-17"},{qty:30,price:346.1,date:"2026-08-04"},{qty:50,price:343.6,date:"2026-08-04"},{qty:20,price:336.9,date:"2026-08-17"}], sells:[], realizedPL:0},
+    "LT":         {name:"Larsen & Toubro Ltd",     buys:[{qty:5,price:3825.0,date:"2026-07-23"},{qty:5,price:3750.0,date:"2026-07-24"}], sells:[], realizedPL:0},
+    "CGPOWER":    {name:"CG Power & Industrial",   buys:[{qty:1,price:888.0,date:"2026-07-24"},{qty:27,price:853.0,date:"2026-07-24"},{qty:8,price:879.55,date:"2026-08-19"}], sells:[{qty:29,price:840.14,date:"2026-07-24"},{qty:27,price:820.05,date:"2026-07-30"}], realizedPL:-760.75},
+    "HDFCAMC":    {name:"HDFC AMC Ltd",            buys:[{qty:10,price:2490.0,date:"2026-08-12"}], sells:[], realizedPL:0},
+    "KRISHIVAL":  {name:"Krishival Foods Ltd",     buys:[{qty:25,price:405.0,date:"2026-08-11"},{qty:25,price:378.0,date:"2026-08-20"}], sells:[], realizedPL:0},
+    "EMBASSY":    {name:"Embassy Office Parks REIT",buys:[{qty:1,price:450.69,date:"2026-07-09"},{qty:1,price:450.68,date:"2026-07-09"},{qty:40,price:438.23,date:"2026-08-10"},{qty:1,price:439.01,date:"2026-08-10"}], sells:[{qty:10,price:428.46,date:"2026-06-04"},{qty:2,price:429.48,date:"2026-06-18"}], realizedPL:-112.36},
+    "RELIANCE":   {name:"Reliance Industries Ltd", buys:[{qty:7,price:1321.0,date:"2026-07-17"},{qty:7,price:1282.6,date:"2026-07-24"}], sells:[{qty:10,price:1304.15,date:"2026-06-03"}], realizedPL:0},
+    "BEL":        {name:"Bharat Electronics Ltd",  buys:[{qty:3,price:406.4,date:"2026-06-29"},{qty:27,price:400.0,date:"2026-07-28"},{qty:10,price:387.65,date:"2026-07-29"}], sells:[{qty:27,price:394.15,date:"2026-07-28"}], realizedPL:-160.65},
+    "NATIONALUM": {name:"National Aluminium Co",   buys:[{qty:40,price:384.35,date:"2026-08-17"}], sells:[], realizedPL:0},
+    "NH":         {name:"Narayana Hrudayalaya Ltd",buys:[{qty:5,price:1848.0,date:"2026-08-10"}], sells:[], realizedPL:0},
+    "SBIN":       {name:"State Bank of India",     buys:[{qty:8,price:1078.0,date:"2026-08-10"}], sells:[{qty:15,price:941.1,date:"2026-06-03"}], realizedPL:0},
+    "MON100":     {name:"Motilal NASDAQ 100 ETF",  buys:[{qty:1,price:240.3,date:"2026-04-06"},{qty:1,price:242.99,date:"2026-04-06"},{qty:1,price:257.14,date:"2026-04-10"},{qty:1,price:251.72,date:"2026-04-13"},{qty:1,price:286.78,date:"2026-04-17"},{qty:1,price:287.47,date:"2026-04-20"},{qty:1,price:295.64,date:"2026-04-24"},{qty:1,price:316.77,date:"2026-05-08"},{qty:1,price:331.62,date:"2026-05-18"},{qty:1,price:332.13,date:"2026-05-22"},{qty:1,price:336.1,date:"2026-05-29"},{qty:1,price:342.55,date:"2026-06-05"},{qty:1,price:333.29,date:"2026-06-08"},{qty:1,price:330.19,date:"2026-06-15"},{qty:1,price:335.94,date:"2026-06-22"},{qty:1,price:332.78,date:"2026-07-03"},{qty:1,price:332.9,date:"2026-07-17"},{qty:1,price:328.15,date:"2026-07-24"},{qty:1,price:328.99,date:"2026-08-07"},{qty:1,price:330.51,date:"2026-08-21"}], sells:[], realizedPL:0},
+    "JIOFIN":     {name:"Jio Financial Services",  buys:[{qty:25,price:242.0,date:"2026-08-19"}], sells:[{qty:100,price:238.55,date:"2026-07-20"}], realizedPL:0},
+    "SUZLON":     {name:"Suzlon Energy Ltd",       buys:[{qty:50,price:53.0,date:"2026-07-13"},{qty:50,price:48.99,date:"2026-07-28"}], sells:[], realizedPL:0},
+    "SILVERBEES": {name:"Nippon India Silver ETF",  buys:[{qty:1,price:225.35,date:"2026-04-01"},{qty:1,price:229.35,date:"2026-04-08"},{qty:1,price:238.18,date:"2026-04-15"},{qty:1,price:235.85,date:"2026-04-22"},{qty:1,price:226.36,date:"2026-04-29"},{qty:1,price:232.55,date:"2026-05-06"},{qty:1,price:265.18,date:"2026-05-13"},{qty:1,price:248.32,date:"2026-05-20"},{qty:1,price:252.79,date:"2026-05-27"},{qty:1,price:249.16,date:"2026-06-03"},{qty:1,price:222.83,date:"2026-06-10"},{qty:1,price:235.26,date:"2026-06-17"},{qty:1,price:212.66,date:"2026-06-24"},{qty:1,price:211.59,date:"2026-07-01"},{qty:1,price:214.41,date:"2026-07-08"},{qty:1,price:209.5,date:"2026-07-15"},{qty:1,price:214.22,date:"2026-07-22"},{qty:1,price:206.24,date:"2026-07-29"},{qty:1,price:211.06,date:"2026-08-05"},{qty:1,price:223.4,date:"2026-08-12"},{qty:1,price:216.87,date:"2026-08-19"}], sells:[], realizedPL:0},
+    "KAYNES":     {name:"Kaynes Technology India",  buys:[{qty:1,price:3096.8,date:"2026-05-19"}], sells:[{qty:5,price:3452.75,date:"2026-05-14"},{qty:3,price:3383.7,date:"2026-05-14"}], realizedPL:3270.3},
+    "GOLD1":      {name:"Kotak Gold ETF",           buys:[{qty:1,price:122.75,date:"2026-04-06"},{qty:1,price:124.87,date:"2026-04-10"},{qty:1,price:125.84,date:"2026-04-17"},{qty:1,price:124.63,date:"2026-04-24"},{qty:1,price:123.79,date:"2026-05-04"},{qty:1,price:125.61,date:"2026-05-08"},{qty:1,price:131.8,date:"2026-05-15"},{qty:1,price:131.95,date:"2026-05-22"},{qty:1,price:130.06,date:"2026-05-29"},{qty:1,price:128.92,date:"2026-06-05"},{qty:1,price:122.65,date:"2026-06-12"},{qty:1,price:120.16,date:"2026-06-19"},{qty:1,price:117.4,date:"2026-06-29"},{qty:1,price:121.24,date:"2026-07-03"},{qty:1,price:119.76,date:"2026-07-10"},{qty:1,price:116.77,date:"2026-07-17"},{qty:1,price:118.14,date:"2026-07-24"},{qty:1,price:118.54,date:"2026-07-31"},{qty:1,price:123.1,date:"2026-08-07"},{qty:1,price:125.27,date:"2026-08-14"},{qty:1,price:131.44,date:"2026-08-21"}], sells:[], realizedPL:0},
+    "ANANTRAJ":   {name:"Anant Raj Ltd",            buys:[{qty:5,price:513.6,date:"2026-06-11"}], sells:[{qty:20,price:568.0,date:"2026-07-17"}], realizedPL:272},
+    "BANKNIFTY1": {name:"Kotak Nifty Bank ETF",     buys:[{qty:10,price:59.75,date:"2026-07-13"},{qty:10,price:59.88,date:"2026-07-20"},{qty:10,price:59.49,date:"2026-07-27"},{qty:10,price:59.77,date:"2026-08-03"}], sells:[{qty:470,price:59.51,date:"2026-06-17"},{qty:30,price:58.84,date:"2026-07-08"}], realizedPL:-1268.1},
+    "INDIGRID":   {name:"IndiGrid Infrastructure Trust",buys:[{qty:1,price:178.56,date:"2026-08-06"},{qty:1,price:179.33,date:"2026-08-13"},{qty:1,price:176.95,date:"2026-08-20"}], sells:[{qty:31,price:172.05,date:"2026-06-04"},{qty:1,price:172.25,date:"2026-06-18"},{qty:6,price:177.98,date:"2026-08-04"}], realizedPL:-311.3}
+  };
+
+  const PF_EXITED = [
+    {sym:"ADANIENT",   name:"Adani Enterprises Ltd",    pl:0,     proceeds:0},
+    {sym:"BSLNIFTY",   name:"BSL Nifty 50 Index ETF",   pl:8.72,  proceeds:1418.0},
+    {sym:"CDSL",       name:"CDSL Ltd",                 pl:0,     proceeds:0},
+    {sym:"CONSUMBEES", name:"Nippon Consumer ETF",      pl:24.02, proceeds:1474.0},
+    {sym:"EIEL",       name:"EIH Associated Hotels",    pl:9.58,  proceeds:573.0},
+    {sym:"GLENMARK",   name:"Glenmark Pharmaceuticals", pl:0,     proceeds:0},
+    {sym:"GRSE",       name:"Garden Reach Shipbuilders",pl:-218.0,proceeds:2628.0},
+    {sym:"HBLENGINE",  name:"HBL Engineering Ltd",      pl:-351.75,proceeds:2085.0},
+    {sym:"HINDCOPPER", name:"Hindustan Copper Ltd",     pl:-127.3,proceeds:1146.0},
+    {sym:"HNGSNGBEES", name:"Nippon Hang Seng ETF",     pl:-78.91,proceeds:1112.0},
+    {sym:"ITBEES",     name:"Nippon India IT ETF",      pl:-28.39,proceeds:1413.0},
+    {sym:"KIRLOSENG",  name:"Kirloskar Oil Engines",    pl:8398.2,proceeds:18738.0},
+    {sym:"KRN",        name:"KRN Heat Exchanger",       pl:217.2, proceeds:2355.0},
+    {sym:"MAZDOCK",    name:"Mazagon Dock Shipbuilders",pl:-1729.95,proceeds:4095.0},
+    {sym:"NETWEB",     name:"Netweb Technologies",      pl:1219.1,proceeds:5775.0},
+    {sym:"PERSISTENT", name:"Persistent Systems Ltd",   pl:2523.7,proceeds:14250.0},
+    {sym:"SCI",        name:"Shipping Corp of India",   pl:1039.25,proceeds:4116.0},
+    {sym:"SRF",        name:"SRF Ltd",                  pl:72.71, proceeds:4185.0},
+    {sym:"THERMAX",    name:"Thermax Ltd",              pl:-1634.5,proceeds:4230.0},
+    {sym:"THOMASCOOK", name:"Thomas Cook India Ltd",    pl:219.8, proceeds:1596.0},
+    {sym:"VOLTAMP",    name:"Voltamp Transformers",     pl:1270.0,proceeds:8250.0},
+    {sym:"ZAGGLE",     name:"Zaggle Prepaid Ocean Svcs",pl:-55.39,proceeds:828.0},
+    {sym:"CDSL",       name:"CDSL Ltd (second lot)",    pl:0,     proceeds:0},
+    {sym:"ADANIENT",   name:"Adani Enterprises (lot 2)",pl:0,     proceeds:0},
+    {sym:"GLENMARK",   name:"Glenmark (lot 2)",        pl:0,     proceeds:0},
+    {sym:"SBIN",       name:"SBIN (prior lots)",        pl:0,     proceeds:14116.5},
+    {sym:"JIOFIN",     name:"JioFin (prior lots)",      pl:-345.0,proceeds:23855.0},
+    {sym:"BANKNIFTY1", name:"BankNifty ETF (prior lots)",pl:-3063.7,proceeds:30721.7},
+    {sym:"INDIGRID",   name:"IndiGrid (prior lots)",    pl:-545.0,proceeds:5580.7},
+    {sym:"RELIANCE",   name:"Reliance (prior lots)",    pl:0,     proceeds:13041.5}
+  ];
+
+  // asset type classification
+  function pfAssetType(sym) {
+    const etf=['MON100','SILVERBEES','GOLD1','BANKNIFTY1','BSLNIFTY','CONSUMBEES','HNGSNGBEES','ITBEES'];
+    const reit=['EMBASSY','INDIGRID'];
+    if(etf.includes(sym)) return 'ETF';
+    if(reit.includes(sym)) return 'REIT';
+    return 'Stock';
+  }
+  function pfTypeBadge(sym) {
+    const t=pfAssetType(sym);
+    const cls={ETF:'pf-badge-etf',REIT:'pf-badge-reit',Stock:'pf-badge-stock'}[t];
+    return `<span class="pf-badge-type ${cls}">${t}</span>`;
+  }
+
+  // compute breakeven & total invested from remaining buys
+  function pfBreakeven(buys) {
+    const totalQty = buys.reduce((s,b)=>s+b.qty,0);
+    if(!totalQty) return {breakeven:0,invested:0,qty:0};
+    const totalCost = buys.reduce((s,b)=>s+(b.qty*b.price),0);
+    return {breakeven:totalCost/totalQty, invested:totalCost, qty:totalQty};
+  }
+
+  let pfInitDone = false;
+  function initPortfolio() {
+    if(pfInitDone) return;
+    pfInitDone = true;
+
+    // Summary stats
+    let totalInvested=0, totalPL=0, totalQty=0;
+    Object.values(PF_HOLDINGS).forEach(s=>{
+      const b=pfBreakeven(s.buys);
+      totalInvested+=b.invested;
+      totalPL+=s.realizedPL||0;
+    });
+
+    const sumEl=document.getElementById('pf-summary');
+    const plCls=totalPL>=0?'pf-pos':'pf-neg';
+    sumEl.innerHTML=`
+      <div class="pf-stat"><div class="pf-val">${fmtN(totalInvested,0)}</div><div class="pf-lbl">Total Invested ₹</div></div>
+      <div class="pf-stat"><div class="pf-val">20</div><div class="pf-lbl">Active Holdings</div></div>
+      <div class="pf-stat"><div class="pf-val ${plCls}">${totalPL>=0?'+':''}${fmtN(totalPL,0)}</div><div class="pf-lbl">Realized P&L ₹</div></div>
+      <div class="pf-stat"><div class="pf-val">30</div><div class="pf-lbl">Exited Positions</div></div>
+    `;
+
+    // Holdings table
+    const tbody=document.getElementById('pf-holdings-body');
+    Object.entries(PF_HOLDINGS).forEach(([sym,stock])=>{
+      const {breakeven,invested,qty}=pfBreakeven(stock.buys);
+      const pl=stock.realizedPL||0;
+      const plCls2=pl>0?'pf-pos':pl<0?'pf-neg':'pf-zero';
+      const plStr=pl===0?'—':(pl>0?'+':'')+fmtN(pl,2);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><div class="pf-sym">${sym}</div><div class="pf-name">${stock.name}</div></td>
+        <td>${pfTypeBadge(sym)}</td>
+        <td class="r">${qty}</td>
+        <td class="r"><b>₹${fmtN(breakeven,2)}</b></td>
+        <td class="r">₹${fmtN(invested,0)}</td>
+        <td class="r ${plCls2}">${plStr}</td>
+        <td><button class="load-calc-btn" onclick="loadStockInCalc('${sym}')">Load ↗</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Exited positions — deduplicate by sym for display
+    const seen=new Set();
+    const exitedBody=document.getElementById('pf-exited-body');
+    PF_EXITED.forEach(e=>{
+      const key=e.sym+'|'+e.pl;
+      if(seen.has(key)) return;
+      seen.add(key);
+      const plCls3=e.pl>0?'pf-pos':e.pl<0?'pf-neg':'pf-zero';
+      const plStr=e.pl===0?'—':(e.pl>0?'+':'')+fmtN(e.pl,2);
+      const procStr=e.proceeds>0?'₹'+fmtN(e.proceeds,0):'—';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><div class="pf-sym">${e.sym}</div><div class="pf-name">${e.name}</div></td>
+        <td class="r ${plCls3}">${plStr}</td>
+        <td class="r">${procStr}</td>
+      `;
+      exitedBody.appendChild(tr);
+    });
+  }
+
+  function toggleExited(btn) {
+    const sec=document.getElementById('pf-exited-section');
+    sec.classList.toggle('open');
+    btn.querySelector('span').textContent=sec.classList.contains('open')?'▼':'▶';
+  }
+
+  function loadStockInCalc(sym) {
+    const stock=PF_HOLDINGS[sym];
+    if(!stock) return;
+
+    // Clear existing rows
+    document.getElementById('buy-rows').innerHTML='';
+    buyCount=0;
+    document.getElementById('sell-rows').innerHTML='';
+    sellCount=0;
+
+    // Populate buys
+    stock.buys.forEach(b=>addBuyRow(b.qty,b.price,b.date));
+
+    // Populate sells
+    stock.sells.forEach(s=>addSellRow(s.qty,s.price,s.date));
+
+    // Switch to breakeven tab
+    const firstTabBtn=document.querySelector('.tab-btn');
+    switchTab('breakeven',firstTabBtn);
+    window.scrollTo({top:0,behavior:'smooth'});
+
+    // Trigger recalc after DOM settles
+    setTimeout(()=>{ if(typeof calcBreakeven==='function') calcBreakeven(); },100);
+  }
+  </script>
+
   <!-- ══ FOOTER ═══════════════════════════════════════════════════ -->
   <div class="site-footer">
     <div class="footer-dot-bar"></div>
@@ -1258,6 +1513,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='tracker') initTracker();
+  if(name==='portfolio') initPortfolio();
 }
 
 // ── Excel paste ────────────────────────────────────────────────────
