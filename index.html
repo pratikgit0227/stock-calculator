@@ -1215,18 +1215,14 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   .pf-exited-section.open { display:block; }
   .pf-reset-btn { background:none; border:1px solid var(--mid); border-radius:7px; padding:5px 12px; font-size:.72rem; cursor:pointer; color:var(--muted); transition:border-color .15s,color .15s; }
   .pf-reset-btn:hover { border-color:var(--navy); color:var(--navy); }
-  /* broker picker */
-  .pf-broker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-top:4px; }
-  .pf-broker-card { border:2px solid var(--mid); border-radius:12px; padding:18px 12px; text-align:center; cursor:pointer; transition:border-color .18s,box-shadow .18s,background .18s; position:relative; }
-  .pf-broker-card.active { border-color:var(--teal); background:var(--teal-pale,#e8f7f7); box-shadow:0 0 0 3px rgba(109,191,191,.18); }
-  .pf-broker-card.soon { opacity:.52; cursor:not-allowed; }
-  .pf-broker-logo { font-size:1.9rem; margin-bottom:6px; }
-  .pf-broker-name { font-size:.8rem; font-weight:700; color:var(--navy); }
-  .pf-broker-sub  { font-size:.67rem; color:var(--muted); margin-top:3px; }
-  .pf-soon-badge  { position:absolute; top:8px; right:8px; background:var(--mid); color:var(--muted); font-size:.6rem; font-weight:700; padding:2px 6px; border-radius:5px; text-transform:uppercase; letter-spacing:.04em; }
-  .pf-broker-next { margin-top:18px; display:none; }
-  .pf-back-link { background:none; border:none; color:var(--muted); font-size:.75rem; cursor:pointer; padding:0; margin-bottom:14px; display:inline-flex; align-items:center; gap:4px; }
-  .pf-back-link:hover { color:var(--navy); }
+  /* broker chips */
+  .pf-broker-chips { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 20px; }
+  .pf-broker-chip  { display:inline-flex; align-items:center; gap:5px; border:1.5px solid var(--mid); border-radius:20px; padding:5px 12px; font-size:.73rem; font-weight:600; color:var(--navy); background:var(--white); }
+  .pf-broker-chip.ok  { border-color:var(--teal); color:var(--teal-dk); background:var(--teal-pale,#e8f7f7); }
+  .pf-broker-chip.soon { color:var(--muted); }
+  /* detected mapping pill */
+  .pf-map-info { background:var(--off); border-radius:10px; padding:10px 14px; font-size:.73rem; color:var(--muted); margin-top:12px; line-height:1.8; display:none; }
+  .pf-map-info b { color:var(--navy); }
   </style>
 
   <div id="tab-portfolio" class="tab-panel">
@@ -1237,73 +1233,40 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
     <!-- Upload card -->
     <div class="card" id="pf-upload-card">
-
-      <!-- Step 1: Broker picker -->
-      <div id="pf-broker-step">
-        <div class="section-label" style="margin-bottom:12px;">Step 1 — Select your broker</div>
-        <div class="pf-broker-grid">
-          <div class="pf-broker-card active" id="broker-indmoney" onclick="selectBroker('indmoney')">
-            <div class="pf-broker-logo">📱</div>
-            <div class="pf-broker-name">IndMoney</div>
-            <div class="pf-broker-sub">Supported ✓</div>
-          </div>
-          <div class="pf-broker-card soon" title="Coming soon">
-            <span class="pf-soon-badge">Soon</span>
-            <div class="pf-broker-logo">🟥</div>
-            <div class="pf-broker-name">Zerodha</div>
-            <div class="pf-broker-sub">Coming soon</div>
-          </div>
-          <div class="pf-broker-card soon" title="Coming soon">
-            <span class="pf-soon-badge">Soon</span>
-            <div class="pf-broker-logo">🟢</div>
-            <div class="pf-broker-name">Groww</div>
-            <div class="pf-broker-sub">Coming soon</div>
-          </div>
-          <div class="pf-broker-card soon" title="Coming soon">
-            <span class="pf-soon-badge">Soon</span>
-            <div class="pf-broker-logo">🔵</div>
-            <div class="pf-broker-name">Upstox</div>
-            <div class="pf-broker-sub">Coming soon</div>
-          </div>
-          <div class="pf-broker-card soon" title="Coming soon">
-            <span class="pf-soon-badge">Soon</span>
-            <div class="pf-broker-logo">🟠</div>
-            <div class="pf-broker-name">Angel One</div>
-            <div class="pf-broker-sub">Coming soon</div>
-          </div>
-        </div>
-        <div style="margin-top:18px;">
-          <button class="btn-calc" style="width:auto;padding:10px 28px;" onclick="confirmBroker()">Continue with IndMoney →</button>
-        </div>
+      <div class="section-label" style="margin-bottom:8px;">Works with any broker's transaction report</div>
+      <div class="pf-broker-chips">
+        <span class="pf-broker-chip ok">✓ IndMoney</span>
+        <span class="pf-broker-chip ok">✓ Zerodha</span>
+        <span class="pf-broker-chip ok">✓ Groww</span>
+        <span class="pf-broker-chip ok">✓ Upstox</span>
+        <span class="pf-broker-chip ok">✓ Angel One</span>
+        <span class="pf-broker-chip ok">✓ 5Paisa</span>
+        <span class="pf-broker-chip soon">+ others</span>
       </div>
 
-      <!-- Step 2: Upload (shown after broker selected) -->
-      <div id="pf-upload-step" style="display:none;">
-        <button class="pf-back-link" onclick="showBrokerStep()">← Change broker</button>
-        <div class="section-label" style="margin-bottom:12px;">Step 2 — Upload your IndMoney transaction report</div>
-        <div class="pf-drop-zone" id="pf-drop-zone"
-             ondragover="event.preventDefault();this.classList.add('drag-over')"
-             ondragleave="this.classList.remove('drag-over')"
-             ondrop="this.classList.remove('drag-over');handlePFFile(event.dataTransfer.files[0])"
-             onclick="document.getElementById('pf-file-input').click()">
-          <div class="pf-drop-icon">📂</div>
-          <div class="pf-drop-title">Drop your IndMoney Excel here</div>
-          <div class="pf-drop-sub">or click to browse &nbsp;·&nbsp; <b>.xlsx</b> file</div>
-          <div class="pf-how">
-            <div class="pf-how-title">How to export from IndMoney</div>
-            <ol>
-              <li>Open IndMoney app → Stocks → Portfolio</li>
-              <li>Tap ⋮ menu → Download Transaction Report</li>
-              <li>Select date range → Export as Excel (.xlsx)</li>
-              <li>Drop the file here</li>
-            </ol>
-          </div>
-          <input type="file" id="pf-file-input" accept=".xlsx,.xls" style="display:none"
-                 onchange="handlePFFile(this.files[0])">
+      <div class="pf-drop-zone" id="pf-drop-zone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="this.classList.remove('drag-over');handlePFFile(event.dataTransfer.files[0])"
+           onclick="document.getElementById('pf-file-input').click()">
+        <div class="pf-drop-icon">📂</div>
+        <div class="pf-drop-title">Drop your transaction report here</div>
+        <div class="pf-drop-sub">or click to browse &nbsp;·&nbsp; <b>.xlsx</b> or <b>.xls</b> &nbsp;·&nbsp; columns auto-detected</div>
+        <div class="pf-how">
+          <div class="pf-how-title">How to export — your broker</div>
+          <ol>
+            <li><b>IndMoney</b> → Stocks → Portfolio → ⋮ → Download Transaction Report</li>
+            <li><b>Zerodha</b> → Console → Reports → Tradebook → Download Excel</li>
+            <li><b>Groww</b> → Profile → Reports → Stock Statement → Download</li>
+            <li><b>Upstox</b> → Reports → Trade History → Export to Excel</li>
+            <li><b>Angel One</b> → Portfolio → Reports → Trade Book → Export</li>
+          </ol>
         </div>
-        <div id="pf-parse-status" style="display:none;text-align:center;padding:24px;font-size:.85rem;color:var(--teal-dk);"></div>
+        <input type="file" id="pf-file-input" accept=".xlsx,.xls" style="display:none"
+               onchange="handlePFFile(this.files[0])">
       </div>
-
+      <div id="pf-map-info" class="pf-map-info"></div>
+      <div id="pf-parse-status" style="display:none;text-align:center;padding:24px;font-size:.85rem;color:var(--teal-dk);"></div>
     </div>
 
     <!-- Portfolio data (shown after parse) -->
@@ -1355,27 +1318,61 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   </div><!-- /tab-portfolio -->
 
   <script>
-  // ── PORTFOLIO — broker picker + IndMoney Excel uploader ─────────
+  // ── PORTFOLIO — format-agnostic uploader ────────────────────────
   let pfHoldings = {}, pfExited = {};
-  let pfSelectedBroker = 'indmoney';
 
-  function selectBroker(id) {
-    pfSelectedBroker = id;
-    document.querySelectorAll('.pf-broker-card:not(.soon)').forEach(c => c.classList.remove('active'));
-    document.getElementById('broker-'+id).classList.add('active');
+  // Column patterns: ordered most-specific → least-specific per field
+  const PF_COL = {
+    date  : ['execution date','trade date','order date','settlement date','trade_date','order_date','date','time','datetime','timestamp'],
+    sym   : ['scrip symbol','trading symbol','tradingsymbol','nse symbol','symbol','ticker','scrip code','nse code','bse code','instrument','isin','stock'],
+    name  : ['scrip name','stock name','script name','company name','instrument name','security name','name'],
+    type  : ['trade type','transaction type','trans. type','trans type','order type','txn type','buy/sell','type','side','b/s','action'],
+    qty   : ['trade quantity','filled qty','quantity','qty','shares','units','volume'],
+    price : ['trade price','executed price','avg. price','avg price','average price','price/unit','price per unit','rate','price','nav'],
+    status: ['order status','trade status','status','state','order_status']
+  };
+
+  function pfFindCol(headers, patterns) {
+    const hl = headers.map(h => h.toLowerCase().trim());
+    for (const p of patterns) {
+      const i = hl.findIndex(h => h === p);
+      if (i !== -1) return headers[i];
+    }
+    for (const p of patterns) {
+      const i = hl.findIndex(h => h.includes(p));
+      if (i !== -1) return headers[i];
+    }
+    return null;
   }
 
-  function confirmBroker() {
-    document.getElementById('pf-broker-step').style.display = 'none';
-    document.getElementById('pf-upload-step').style.display = 'block';
+  function pfNormalizeType(v) {
+    const s = String(v || '').trim().toUpperCase();
+    if (['BUY','B','PURCHASE','P','DR','CREDIT'].includes(s)) return 'BUY';
+    if (['SELL','S','SALE','CR','DEBIT'].includes(s)) return 'SELL';
+    return s;
   }
 
-  function showBrokerStep() {
-    document.getElementById('pf-upload-step').style.display = 'none';
-    document.getElementById('pf-broker-step').style.display = 'block';
-    document.getElementById('pf-drop-zone').style.display    = 'flex';
-    document.getElementById('pf-parse-status').style.display = 'none';
-    document.getElementById('pf-file-input').value           = '';
+  function pfParseDate(v) {
+    if (v instanceof Date) return isNaN(v) ? null : v;
+    const s = String(v).trim();
+    // Try common Indian formats: DD-Mon-YYYY, DD/MM/YYYY, YYYY-MM-DD
+    const fmts = [
+      s,
+      s.replace(/(\d{2})-([A-Za-z]{3})-(\d{4})/, '$2 $1 $3'),
+      s.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'),
+      s.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$2-$1')
+    ];
+    for (const f of fmts) {
+      const d = new Date(f);
+      if (!isNaN(d)) return d;
+    }
+    return null;
+  }
+
+  function pfIsExecuted(statusCol, row) {
+    if (!statusCol) return true;
+    const s = String(row[statusCol] || '').trim().toLowerCase();
+    return ['executed','complete','completed','traded','fill','filled','success','done','-',''].includes(s);
   }
 
   function initPortfolio() {
@@ -1392,8 +1389,10 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     if (!file) return;
     const dropZone = document.getElementById('pf-drop-zone');
     const status   = document.getElementById('pf-parse-status');
+    const mapEl    = document.getElementById('pf-map-info');
     dropZone.style.display = 'none';
     status.style.display   = 'block';
+    if (mapEl) mapEl.style.display = 'none';
     status.innerHTML = '⏳ Reading file…';
 
     const waitXLSX = (cb, n=0) => {
@@ -1419,7 +1418,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
               renderPFPortfolio(pfHoldings, pfExited);
               status.style.display = 'none';
             } catch(e) {
-              status.innerHTML = '❌ ' + e.message;
+              status.innerHTML = '❌ ' + e.message.replace(/\n/g,'<br>');
               dropZone.style.display = 'flex';
             }
           }, 60);
@@ -1433,24 +1432,58 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   }
 
   function runPFFIFO(rows) {
-    // IndMoney columns: Execution Date | Scrip Symbol | Scrip Name | Type | Quantity | Price | Order Status
+    if (!rows.length) throw new Error('File appears empty.');
+    const headers = Object.keys(rows[0]);
+
+    // Auto-detect columns
+    const C = {};
+    for (const [field, patterns] of Object.entries(PF_COL)) {
+      C[field] = pfFindCol(headers, patterns);
+    }
+
+    // Must-have: date, symbol, type, qty, price
+    const missing = ['date','sym','type','qty','price'].filter(f => !C[f]);
+    if (missing.length) {
+      throw new Error(
+        `Could not find columns for: ${missing.join(', ')}.\n` +
+        `Columns in your file: ${headers.join(' | ')}\n` +
+        `Please ensure your report includes date, symbol, transaction type (buy/sell), quantity and price columns.`
+      );
+    }
+
+    // Show detected mapping
+    const mapEl = document.getElementById('pf-map-info');
+    if (mapEl) {
+      mapEl.style.display = 'block';
+      mapEl.innerHTML = '🔍 Auto-detected columns — ' +
+        `<b>Date:</b> ${C.date} · <b>Symbol:</b> ${C.sym} · <b>Type:</b> ${C.type} · ` +
+        `<b>Qty:</b> ${C.qty} · <b>Price:</b> ${C.price}` +
+        (C.name ? ` · <b>Name:</b> ${C.name}` : '') +
+        (C.status ? ` · <b>Status:</b> ${C.status}` : '');
+    }
+
     const txs = rows
-      .filter(r => String(r['Order Status']).trim().toLowerCase() === 'executed')
-      .map(r => ({
-        date: r['Execution Date'] instanceof Date
-              ? r['Execution Date']
-              : new Date(r['Execution Date']),
-        sym  : String(r['Scrip Symbol'] || '').trim(),
-        name : String(r['Scrip Name']   || '').trim(),
-        type : String(r['Type']         || '').trim().toUpperCase(),
-        qty  : Number(r['Quantity']),
-        price: Number(r['Price'])
-      }))
-      .filter(r => r.sym && (r.type==='BUY'||r.type==='SELL') && r.qty>0 && r.price>=0)
+      .filter(r => pfIsExecuted(C.status, r))
+      .map(r => {
+        const date  = pfParseDate(r[C.date]);
+        const sym   = String(r[C.sym]  || '').trim().toUpperCase().replace(/\s+/g,'');
+        const name  = C.name ? String(r[C.name] || sym).trim() : sym;
+        const type  = pfNormalizeType(r[C.type]);
+        const qty   = parseFloat(String(r[C.qty]   || '0').replace(/,/g,''));
+        const price = parseFloat(String(r[C.price] || '0').replace(/[₹,\s]/g,''));
+        return {date, sym, name, type, qty, price};
+      })
+      .filter(r => r.date && r.sym && (r.type==='BUY'||r.type==='SELL') && r.qty>0 && r.price>=0)
       .sort((a,b) => a.date - b.date);
 
-    if (!txs.length) throw new Error('No executed BUY/SELL transactions found. Check the file format.');
+    if (!txs.length) {
+      throw new Error(
+        'No valid BUY/SELL transactions found after filtering.\n' +
+        `Check that the "${C.type}" column contains BUY/SELL values and the "${C.status||'status'}" column marks executed trades.`
+      );
+    }
 
+    // Group by symbol → FIFO
     const bySymbol = {};
     txs.forEach(tx => {
       if (!bySymbol[tx.sym]) bySymbol[tx.sym] = {name:tx.name, txs:[]};
@@ -1485,15 +1518,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       if (queue.length > 0) {
         const totalQty  = queue.reduce((s,l)=>s+l.qty, 0);
         const totalCost = queue.reduce((s,l)=>s+l.qty*l.price, 0);
-        holdings[sym] = {
-          name      : data.name,
-          qty       : totalQty,
-          breakeven : totalCost / totalQty,
-          invested  : totalCost,
-          realizedPL,
-          buys      : queue,
-          sells     : sellLog
-        };
+        holdings[sym] = {name:data.name, qty:totalQty, breakeven:totalCost/totalQty, invested:totalCost, realizedPL, buys:queue, sells:sellLog};
       } else {
         const proceeds = sellLog.reduce((s,s2)=>s+s2.qty*s2.price, 0);
         exited[sym] = {name:data.name, realizedPL, proceeds};
@@ -1565,10 +1590,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     pfExited   = {};
     document.getElementById('pf-data-section').style.display  = 'none';
     document.getElementById('pf-upload-card').style.display   = 'block';
-    document.getElementById('pf-broker-step').style.display   = 'block';
-    document.getElementById('pf-upload-step').style.display   = 'none';
     document.getElementById('pf-drop-zone').style.display     = 'flex';
     document.getElementById('pf-parse-status').style.display  = 'none';
+    document.getElementById('pf-map-info').style.display      = 'none';
     document.getElementById('pf-file-input').value            = '';
     document.getElementById('pf-exited-section').classList.remove('open');
     document.getElementById('pf-exited-btn').style.display    = 'none';
