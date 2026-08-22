@@ -573,6 +573,31 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
 .help-btn:hover { border-color:var(--gold-lt); color:var(--gold-lt); background:rgba(232,149,42,.1); }
 
+/* ── Lead capture slide-in ─────────────────────────────────────── */
+#lead-slidein {
+  position:fixed; bottom:24px; right:24px; z-index:9000;
+  width:300px; background:var(--white); border-radius:16px;
+  box-shadow:0 8px 32px rgba(27,42,107,.22); border:1.5px solid var(--mid);
+  transform:translateY(120px); opacity:0; transition:transform .35s cubic-bezier(.22,.68,0,1.2),opacity .3s;
+  pointer-events:none;
+}
+#lead-slidein.visible { transform:translateY(0); opacity:1; pointer-events:auto; }
+.lead-header { background:linear-gradient(135deg,var(--navy),var(--navy-lt)); border-radius:14px 14px 0 0; padding:14px 16px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.lead-header-text .lead-title { font-family:'Playfair Display',serif; font-size:.95rem; font-weight:700; color:var(--gold-lt); }
+.lead-header-text .lead-sub   { font-size:.7rem; color:var(--teal-lt); margin-top:2px; }
+.lead-close { background:none; border:none; color:rgba(255,255,255,.5); font-size:1.1rem; cursor:pointer; line-height:1; padding:0; flex-shrink:0; }
+.lead-close:hover { color:#fff; }
+.lead-body { padding:14px 16px 16px; }
+.lead-field { margin-bottom:10px; }
+.lead-label { font-size:.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.lead-input { width:100%; box-sizing:border-box; border:1.5px solid var(--mid); border-radius:8px; padding:8px 10px; font-size:.82rem; font-family:'Poppins',sans-serif; color:var(--ink); background:var(--white); outline:none; transition:border-color .15s; }
+.lead-input:focus { border-color:var(--teal); }
+.lead-submit { width:100%; background:linear-gradient(135deg,var(--teal),var(--teal-dk,#4a9f9f)); color:#fff; border:none; border-radius:9px; padding:10px; font-size:.82rem; font-weight:700; cursor:pointer; margin-top:4px; transition:opacity .15s; font-family:'Poppins',sans-serif; }
+.lead-submit:hover { opacity:.88; }
+.lead-success { text-align:center; padding:18px 16px; font-size:.82rem; color:var(--teal-dk); display:none; }
+.lead-success .lead-tick { font-size:2rem; display:block; margin-bottom:6px; }
+.lead-privacy { font-size:.65rem; color:var(--muted); text-align:center; margin-top:8px; }
+
 /* ── STOCK TRACKER ──────────────────────────────────── */
 .tracker-search-wrap { position:relative; }
 .tracker-search-input { font-size:.9rem !important; padding:11px 14px !important; }
@@ -1686,7 +1711,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   }
 
   function resetPFUpload() {
-    pfHoldings = {}; pfExited = {}; pfRawTxns = []; pfSymNames = {}; pfPending = [];
+    pfPending = [];
     document.getElementById('pf-data-section').style.display  = 'none';
     document.getElementById('pf-upload-card').style.display   = 'block';
     document.getElementById('pf-drop-zone').style.display     = 'flex';
@@ -1718,6 +1743,33 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     setTimeout(() => { if(typeof calcBreakeven==='function') calcBreakeven(); }, 100);
   }
   </script>
+
+  <!-- ══ LEAD CAPTURE SLIDE-IN ════════════════════════════════════ -->
+  <div id="lead-slidein">
+    <div class="lead-header">
+      <div class="lead-header-text">
+        <div class="lead-title">📬 Get free tax tips</div>
+        <div class="lead-sub">Join 1,000+ Indians saving more on taxes</div>
+      </div>
+      <button class="lead-close" onclick="closeLead()" title="Dismiss">✕</button>
+    </div>
+    <div class="lead-body" id="lead-form-body">
+      <div class="lead-field">
+        <div class="lead-label">Your Name</div>
+        <input class="lead-input" id="lead-name" type="text" placeholder="Rahul Sharma" autocomplete="name" />
+      </div>
+      <div class="lead-field">
+        <div class="lead-label">WhatsApp Number</div>
+        <input class="lead-input" id="lead-mobile" type="tel" placeholder="9876543210" maxlength="15" autocomplete="tel" />
+      </div>
+      <button class="lead-submit" onclick="submitLead()">Get tax tips on WhatsApp →</button>
+      <div class="lead-privacy">🔒 No spam. Used only to send you tax insights from CA Pratik.</div>
+    </div>
+    <div class="lead-success" id="lead-success">
+      <span class="lead-tick">🎉</span>
+      <b>You're in!</b><br>CA Pratik will reach out on WhatsApp soon.
+    </div>
+  </div>
 
   <!-- ══ FOOTER ═══════════════════════════════════════════════════ -->
   <div class="site-footer">
@@ -2144,6 +2196,52 @@ function handleModalOverlayClick(e){
   if(!localStorage.getItem(GUIDE_KEY)){
     setTimeout(openGuide,350); // slight delay so page renders first
   }
+})();
+
+// ── Lead capture ───────────────────────────────────────────────────
+// ↓ Paste your Google Apps Script Web App URL here after deploying
+const LEAD_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxsfYhviX1ObYvzuo62U7HRNR7HU9gcxJJwMHkm-Wm8OEoWiD_WNsN5k-eKz--NC3U/exec';
+const LEAD_KEY = 'aarthik_lead_submitted_v1';
+
+function openLead()  { document.getElementById('lead-slidein').classList.add('visible'); }
+function closeLead() {
+  document.getElementById('lead-slidein').classList.remove('visible');
+  sessionStorage.setItem('lead_dismissed','1');
+}
+
+async function submitLead() {
+  const name   = document.getElementById('lead-name').value.trim();
+  const mobile = document.getElementById('lead-mobile').value.trim().replace(/\D/g,'');
+  if (!name)   { document.getElementById('lead-name').focus();   return; }
+  if (mobile.length < 10) { document.getElementById('lead-mobile').focus(); return; }
+
+  const btn = document.querySelector('.lead-submit');
+  btn.textContent = 'Sending…'; btn.disabled = true;
+
+  try {
+    // no-cors: Google Apps Script doesn't allow CORS — data still lands in sheet
+    await fetch(LEAD_SHEET_URL, {
+      method : 'POST',
+      mode   : 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body   : JSON.stringify({
+        name, mobile,
+        source   : 'Aarthik Udaan Calculator',
+        timestamp: new Date().toISOString()
+      })
+    });
+  } catch(_) { /* no-cors always throws — submission still succeeds */ }
+
+  localStorage.setItem(LEAD_KEY, '1');
+  document.getElementById('lead-form-body').style.display = 'none';
+  document.getElementById('lead-success').style.display   = 'block';
+  setTimeout(closeLead, 3500);
+}
+
+// Show after 20 s — skip if already submitted or dismissed this session
+(function(){
+  if (localStorage.getItem(LEAD_KEY) || sessionStorage.getItem('lead_dismissed')) return;
+  setTimeout(openLead, 20000);
 })();
 
 // ── Init ───────────────────────────────────────────────────────────
