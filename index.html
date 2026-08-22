@@ -1406,9 +1406,20 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       reader.onload = ev => {
         try {
           status.innerHTML = '⏳ Parsing transactions…';
-          const wb   = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
-          const ws   = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+          const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+
+          // Scan first 15 rows to find the real header row
+          const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+          const allPatterns = Object.values(PF_COL).flat();
+          let bestRow = 0, bestScore = 0;
+          for (let i = 0; i < Math.min(15, raw.length); i++) {
+            const cells = raw[i].map(c => String(c||'').toLowerCase().trim());
+            const score = allPatterns.filter(p => cells.some(c => c===p || c.includes(p))).length;
+            if (score > bestScore) { bestScore = score; bestRow = i; }
+          }
+
+          const rows = XLSX.utils.sheet_to_json(ws, {defval:'', range:bestRow, cellDates:true});
           status.innerHTML = `⏳ Running FIFO on ${rows.length} rows…`;
           setTimeout(() => {
             try {
