@@ -1223,6 +1223,16 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   /* detected mapping pill */
   .pf-map-info { background:var(--off); border-radius:10px; padding:10px 14px; font-size:.73rem; color:var(--muted); margin-top:12px; line-height:1.8; display:none; }
   .pf-map-info b { color:var(--navy); }
+  /* merge prompt */
+  .pf-merge-prompt { background:#fff8e6; border:1.5px solid #f0c040; border-radius:12px; padding:16px 18px; margin-top:16px; display:none; }
+  .pf-merge-title { font-weight:700; color:var(--navy); font-size:.88rem; margin-bottom:6px; }
+  .pf-merge-desc  { font-size:.78rem; color:var(--muted); margin-bottom:14px; line-height:1.6; }
+  .pf-merge-fy    { font-weight:700; color:var(--navy); }
+  .pf-merge-btns  { display:flex; gap:10px; flex-wrap:wrap; }
+  .pf-merge-btn-yes { background:var(--teal); color:#fff; border:none; padding:8px 18px; border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:700; }
+  .pf-merge-btn-no  { background:none; border:1.5px solid var(--mid); color:var(--navy); padding:8px 18px; border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:700; }
+  .pf-merge-btn-yes:hover { background:var(--teal-dk); }
+  .pf-merge-btn-no:hover  { border-color:var(--navy); }
   </style>
 
   <div id="tab-portfolio" class="tab-panel">
@@ -1267,6 +1277,20 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       </div>
       <div id="pf-map-info" class="pf-map-info"></div>
       <div id="pf-parse-status" style="display:none;text-align:center;padding:24px;font-size:.85rem;color:var(--teal-dk);"></div>
+
+      <!-- Merge / Replace prompt -->
+      <div id="pf-merge-prompt" class="pf-merge-prompt">
+        <div class="pf-merge-title">📂 Another report detected</div>
+        <div class="pf-merge-desc">
+          You already have data loaded for <span class="pf-merge-fy" id="pf-merge-existing-fy"></span>.<br>
+          The new file covers <span class="pf-merge-fy" id="pf-merge-new-fy"></span>.<br><br>
+          <b>Is this the same account / person?</b>
+        </div>
+        <div class="pf-merge-btns">
+          <button class="pf-merge-btn-yes" onclick="pfMergeSameAccount()">Yes — merge both FYs &amp; recompute FIFO</button>
+          <button class="pf-merge-btn-no"  onclick="pfReplaceAll()">No — replace with new file</button>
+        </div>
+      </div>
     </div>
 
     <!-- Portfolio data (shown after parse) -->
@@ -1318,19 +1342,28 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   </div><!-- /tab-portfolio -->
 
   <script>
-  // ── PORTFOLIO — format-agnostic uploader ────────────────────────
+  // ── PORTFOLIO — format-agnostic, multi-FY, merge-aware uploader ─
   let pfHoldings = {}, pfExited = {};
+  let pfRawTxns  = [];      // all normalized txns accumulated across uploads
+  let pfSymNames = {};      // sym → best known company name across all uploads
+  let pfPending  = [];      // txns from the file currently being confirmed
 
-  // Column patterns: ordered most-specific → least-specific per field
+  // Column patterns: most-specific → least-specific per field
   const PF_COL = {
     date  : ['execution date','trade date','order date','settlement date','trade_date','order_date','date','time','datetime','timestamp'],
-    sym   : ['scrip symbol','trading symbol','tradingsymbol','nse symbol','symbol','ticker','scrip code','nse code','bse code','instrument','isin','stock'],
-    name  : ['scrip name','stock name','script name','company name','instrument name','security name','name'],
+    sym   : ['scrip symbol','trading symbol','tradingsymbol','nse symbol','symbol','ticker','scrip code','nse code','bse code','instrument','isin'],
+    name  : ['scrip name','stock name','script name','company name','holding name','instrument name','security name','security description','description','particulars','company'],
     type  : ['trade type','transaction type','trans. type','trans type','order type','txn type','buy/sell','type','side','b/s','action'],
     qty   : ['trade quantity','filled qty','quantity','qty','shares','units','volume'],
     price : ['trade price','executed price','avg. price','avg price','average price','price/unit','price per unit','rate','price','nav'],
     status: ['order status','trade status','status','state','order_status']
   };
+
+  // Financial year helper — Apr–Mar
+  function getFY(date) {
+    const m = date.getMonth(), y = date.getFullYear();
+    return m >= 3 ? `FY ${y}-${String(y+1).slice(-2)}` : `FY ${y-1}-${String(y).slice(-2)}`;
+  }
 
   function pfFindCol(headers, patterns) {
     const hl = headers.map(h => h.toLowerCase().trim());
@@ -1393,6 +1426,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     dropZone.style.display = 'none';
     status.style.display   = 'block';
     if (mapEl) mapEl.style.display = 'none';
+    document.getElementById('pf-merge-prompt').style.display = 'none';
     status.innerHTML = '⏳ Reading file…';
 
     const waitXLSX = (cb, n=0) => {
@@ -1406,28 +1440,38 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       reader.onload = ev => {
         try {
           status.innerHTML = '⏳ Parsing transactions…';
-          const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
-          const ws = wb.Sheets[wb.SheetNames[0]];
-
-          // Scan first 15 rows to find the real header row
+          const wb  = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+          const ws  = wb.Sheets[wb.SheetNames[0]];
           const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-          const allPatterns = Object.values(PF_COL).flat();
+
+          // Find real header row (skip title/metadata rows at top)
+          const allPats = Object.values(PF_COL).flat();
           let bestRow = 0, bestScore = 0;
           for (let i = 0; i < Math.min(15, raw.length); i++) {
             const cells = raw[i].map(c => String(c||'').toLowerCase().trim());
-            const score = allPatterns.filter(p => cells.some(c => c===p || c.includes(p))).length;
+            const score = allPats.filter(p => cells.some(c => c===p || c.includes(p))).length;
             if (score > bestScore) { bestScore = score; bestRow = i; }
           }
 
           const rows = XLSX.utils.sheet_to_json(ws, {defval:'', range:bestRow, cellDates:true});
-          status.innerHTML = `⏳ Running FIFO on ${rows.length} rows…`;
+          status.innerHTML = `⏳ Normalizing ${rows.length} rows…`;
+
           setTimeout(() => {
             try {
-              const result = runPFFIFO(rows);
-              pfHoldings = result.holdings;
-              pfExited   = result.exited;
-              renderPFPortfolio(pfHoldings, pfExited);
-              status.style.display = 'none';
+              const newTxns = pfNormalizeTxns(rows);
+              pfPending = newTxns;
+
+              // Show merge prompt if we already have data loaded
+              if (pfRawTxns.length > 0) {
+                status.style.display = 'none';
+                const fySet = [...new Set(pfRawTxns.map(t => getFY(t.date)))].sort();
+                const newFySet = [...new Set(newTxns.map(t => getFY(t.date)))].sort();
+                document.getElementById('pf-merge-existing-fy').textContent = fySet.join(', ');
+                document.getElementById('pf-merge-new-fy').textContent      = newFySet.join(', ');
+                document.getElementById('pf-merge-prompt').style.display    = 'block';
+              } else {
+                pfCommit(newTxns);
+              }
             } catch(e) {
               status.innerHTML = '❌ ' + e.message.replace(/\n/g,'<br>');
               dropZone.style.display = 'flex';
@@ -1442,34 +1486,27 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     });
   }
 
-  function runPFFIFO(rows) {
+  // Normalize rows → clean tx array
+  function pfNormalizeTxns(rows) {
     if (!rows.length) throw new Error('File appears empty.');
     const headers = Object.keys(rows[0]);
-
-    // Auto-detect columns
     const C = {};
     for (const [field, patterns] of Object.entries(PF_COL)) {
       C[field] = pfFindCol(headers, patterns);
     }
-
-    // Must-have: date, symbol, type, qty, price
     const missing = ['date','sym','type','qty','price'].filter(f => !C[f]);
-    if (missing.length) {
-      throw new Error(
-        `Could not find columns for: ${missing.join(', ')}.\n` +
-        `Columns in your file: ${headers.join(' | ')}\n` +
-        `Please ensure your report includes date, symbol, transaction type (buy/sell), quantity and price columns.`
-      );
-    }
+    if (missing.length) throw new Error(
+      `Could not find columns for: ${missing.join(', ')}.\nColumns in your file: ${headers.join(' | ')}`
+    );
 
-    // Show detected mapping
+    // Show mapping info
     const mapEl = document.getElementById('pf-map-info');
     if (mapEl) {
       mapEl.style.display = 'block';
-      mapEl.innerHTML = '🔍 Auto-detected columns — ' +
+      mapEl.innerHTML = '🔍 Detected — ' +
         `<b>Date:</b> ${C.date} · <b>Symbol:</b> ${C.sym} · <b>Type:</b> ${C.type} · ` +
         `<b>Qty:</b> ${C.qty} · <b>Price:</b> ${C.price}` +
-        (C.name ? ` · <b>Name:</b> ${C.name}` : '') +
+        (C.name   ? ` · <b>Name:</b> ${C.name}` : ' · <i>No name column — will use known names</i>') +
         (C.status ? ` · <b>Status:</b> ${C.status}` : '');
     }
 
@@ -1478,26 +1515,65 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
       .map(r => {
         const date  = pfParseDate(r[C.date]);
         const sym   = String(r[C.sym]  || '').trim().toUpperCase().replace(/\s+/g,'');
-        const name  = C.name ? String(r[C.name] || sym).trim() : sym;
+        const rawName = C.name ? String(r[C.name] || '').trim() : '';
+        // prefer rawName if it looks like a company name (not a code), else fall back to sym
+        const name  = (rawName && rawName !== sym && !/^[A-Z0-9&\-]{1,12}$/.test(rawName))
+                      ? rawName : (rawName || sym);
         const type  = pfNormalizeType(r[C.type]);
         const qty   = parseFloat(String(r[C.qty]   || '0').replace(/,/g,''));
         const price = parseFloat(String(r[C.price] || '0').replace(/[₹,\s]/g,''));
         return {date, sym, name, type, qty, price};
       })
-      .filter(r => r.date && r.sym && (r.type==='BUY'||r.type==='SELL') && r.qty>0 && r.price>=0)
-      .sort((a,b) => a.date - b.date);
+      .filter(r => r.date && r.sym && (r.type==='BUY'||r.type==='SELL') && r.qty>0 && r.price>=0);
 
-    if (!txs.length) {
-      throw new Error(
-        'No valid BUY/SELL transactions found after filtering.\n' +
-        `Check that the "${C.type}" column contains BUY/SELL values and the "${C.status||'status'}" column marks executed trades.`
-      );
-    }
+    if (!txs.length) throw new Error(
+      `No valid BUY/SELL transactions found.\nCheck "${C.type}" column has BUY/SELL values` +
+      (C.status ? ` and "${C.status}" marks executed trades.` : '.')
+    );
 
-    // Group by symbol → FIFO
-    const bySymbol = {};
+    // Update global sym→name lookup with any good names we found
     txs.forEach(tx => {
-      if (!bySymbol[tx.sym]) bySymbol[tx.sym] = {name:tx.name, txs:[]};
+      if (tx.name && tx.name !== tx.sym) pfSymNames[tx.sym] = tx.name;
+    });
+
+    return txs.sort((a,b) => a.date - b.date);
+  }
+
+  // Merge user confirms: same account → deduplicate + merge
+  function pfMergeSameAccount() {
+    document.getElementById('pf-merge-prompt').style.display = 'none';
+    const all  = [...pfRawTxns, ...pfPending];
+    const seen = new Set();
+    const merged = all.filter(tx => {
+      const key = `${tx.date.getTime()}|${tx.sym}|${tx.type}|${tx.qty}|${tx.price}`;
+      return seen.has(key) ? false : (seen.add(key), true);
+    }).sort((a,b) => a.date - b.date);
+    pfCommit(merged);
+  }
+
+  // Replace: different account → start fresh
+  function pfReplaceAll() {
+    document.getElementById('pf-merge-prompt').style.display = 'none';
+    pfRawTxns  = [];
+    pfSymNames = {};
+    pfCommit(pfPending);
+  }
+
+  // Run FIFO on txns, render, show portfolio
+  function pfCommit(txns) {
+    pfRawTxns = txns;
+    const {holdings, exited} = pfRunFIFO(txns);
+    pfHoldings = holdings;
+    pfExited   = exited;
+    renderPFPortfolio(holdings, exited, txns);
+    document.getElementById('pf-parse-status').style.display = 'none';
+  }
+
+  // Pure FIFO over sorted txns → {holdings, exited}
+  function pfRunFIFO(txns) {
+    const bySymbol = {};
+    txns.forEach(tx => {
+      if (!bySymbol[tx.sym]) bySymbol[tx.sym] = {txs:[]};
       bySymbol[tx.sym].txs.push(tx);
     });
 
@@ -1510,11 +1586,12 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
       data.txs.forEach(tx => {
         const dateStr = tx.date.toISOString().split('T')[0];
+        const fy      = getFY(tx.date);
         if (tx.type === 'BUY') {
-          queue.push({qty:tx.qty, price:tx.price, date:dateStr});
+          queue.push({qty:tx.qty, price:tx.price, date:dateStr, fy});
         } else {
           let rem = tx.qty;
-          sellLog.push({qty:tx.qty, price:tx.price, date:dateStr});
+          sellLog.push({qty:tx.qty, price:tx.price, date:dateStr, fy});
           while (rem > 0 && queue.length > 0) {
             const lot     = queue[0];
             const matched = Math.min(lot.qty, rem);
@@ -1526,20 +1603,28 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
         }
       });
 
+      // Best name: from txns in this symbol, or global lookup, or sym itself
+      const bestName = pfSymNames[sym]
+        || data.txs.find(t => t.name && t.name !== sym)?.name
+        || sym;
+
       if (queue.length > 0) {
         const totalQty  = queue.reduce((s,l)=>s+l.qty, 0);
         const totalCost = queue.reduce((s,l)=>s+l.qty*l.price, 0);
-        holdings[sym] = {name:data.name, qty:totalQty, breakeven:totalCost/totalQty, invested:totalCost, realizedPL, buys:queue, sells:sellLog};
+        holdings[sym] = {name:bestName, qty:totalQty, breakeven:totalCost/totalQty, invested:totalCost, realizedPL, buys:queue, sells:sellLog};
       } else {
         const proceeds = sellLog.reduce((s,s2)=>s+s2.qty*s2.price, 0);
-        exited[sym] = {name:data.name, realizedPL, proceeds};
+        // Realized P&L by FY
+        const plByFY = {};
+        sellLog.forEach(s => { plByFY[s.fy] = (plByFY[s.fy]||0); }); // placeholder; full per-FY P&L needs per-lot tracking
+        exited[sym] = {name:bestName, realizedPL, proceeds};
       }
     });
 
     return {holdings, exited};
   }
 
-  function renderPFPortfolio(holdings, exited) {
+  function renderPFPortfolio(holdings, exited, allTxns) {
     const hList = Object.entries(holdings);
     const eList = Object.entries(exited);
     const totalInvested = hList.reduce((s,[,h])=>s+h.invested, 0);
@@ -1547,11 +1632,15 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
                         + eList.reduce((s,[,e])=>s+(e.realizedPL||0), 0);
     const plCls = totalPL >= 0 ? 'pf-pos' : 'pf-neg';
 
+    // FY coverage from all transactions
+    const fySet = [...new Set(allTxns.map(t => getFY(t.date)))].sort().join(' · ');
+
     document.getElementById('pf-summary').innerHTML = `
       <div class="pf-stat"><div class="pf-val">₹${fmtN(totalInvested,0)}</div><div class="pf-lbl">Total Invested</div></div>
       <div class="pf-stat"><div class="pf-val">${hList.length}</div><div class="pf-lbl">Active Holdings</div></div>
-      <div class="pf-stat"><div class="pf-val ${plCls}">${totalPL>=0?'+':'-'}₹${fmtN(Math.abs(totalPL),0)}</div><div class="pf-lbl">Realized P&L</div></div>
+      <div class="pf-stat"><div class="pf-val ${plCls}">${totalPL>=0?'+':'-'}₹${fmtN(Math.abs(totalPL),0)}</div><div class="pf-lbl">Realized P&L (all FY)</div></div>
       <div class="pf-stat"><div class="pf-val">${eList.length}</div><div class="pf-lbl">Exited Positions</div></div>
+      <div class="pf-stat" style="grid-column:1/-1;background:var(--off);"><div class="pf-val" style="font-size:.9rem;color:var(--navy);">${fySet}</div><div class="pf-lbl" style="color:var(--muted);">Data coverage</div></div>
     `;
 
     const tbody = document.getElementById('pf-holdings-body');
@@ -1597,13 +1686,13 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   }
 
   function resetPFUpload() {
-    pfHoldings = {};
-    pfExited   = {};
+    pfHoldings = {}; pfExited = {}; pfRawTxns = []; pfSymNames = {}; pfPending = [];
     document.getElementById('pf-data-section').style.display  = 'none';
     document.getElementById('pf-upload-card').style.display   = 'block';
     document.getElementById('pf-drop-zone').style.display     = 'flex';
     document.getElementById('pf-parse-status').style.display  = 'none';
     document.getElementById('pf-map-info').style.display      = 'none';
+    document.getElementById('pf-merge-prompt').style.display  = 'none';
     document.getElementById('pf-file-input').value            = '';
     document.getElementById('pf-exited-section').classList.remove('open');
     document.getElementById('pf-exited-btn').style.display    = 'none';
